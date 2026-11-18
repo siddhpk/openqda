@@ -122,6 +122,19 @@
             >
               <VariableIcon class="w-4 h-4" />
             </Button>
+            <Button
+              v-if="props.source && !sorting && (aiAvailable || aiHint)"
+              @click="openAutocode"
+              :title="
+                aiAvailable
+                  ? 'Autocoding suggestions (optional)'
+                  : 'Autocoding is off'
+              "
+              :class="aiAvailable ? '' : 'opacity-50'"
+              variant="outline"
+            >
+              <CpuChipIcon class="w-4 h-4" />
+            </Button>
             <CreateDialog
               v-if="!sorting"
               :static="true"
@@ -169,6 +182,10 @@
             </Headline3>
             <VariablesList :source="props.source" />
           </div>
+          <AutocodePanel
+            v-if="optionsType === 'autocode'"
+            :source="props.source"
+          />
         </SideOverlay>
       </div>
       <div
@@ -223,7 +240,10 @@ import CreateDialog from '../dialogs/FormDialog.vue';
 import DeleteDialog from '../dialogs/DeleteDialog.vue';
 import { useSelections } from './coding/selections/useSelections.js';
 import FilesList from '../Components/files/FilesList.vue';
-import { router } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
+// Embeddings & Autocoding module
+import { CpuChipIcon } from '@heroicons/vue/24/outline';
+import AutocodePanel from './coding/autocode/AutocodePanel.vue';
 import { asyncTimeout } from '../utils/asyncTimeout.js';
 import ActivityIndicator from '../Components/ActivityIndicator.vue';
 import { attemptAsync } from '../Components/notification/attemptAsync.js';
@@ -384,12 +404,32 @@ const overlayOptions = {
   notes: {
     label: 'Manage Source Notes',
   },
+  autocode: {
+    label: 'Autocoding',
+  },
 };
 const showOptions = ref(false);
 const optionsType = ref('');
 const showOverlay = (type, value) => {
   optionsType.value = type;
   showOptions.value = value;
+};
+
+//------------------------------------------------------------------------
+// AUTOCODING (Embeddings & Autocoding module)
+//------------------------------------------------------------------------
+const aiAvailable = computed(() => !!usePage().props.ai?.enabled);
+// laptop edition: show the button while autocoding is off, with a hint
+const aiHint = computed(() => !!usePage().props.desktop?.enabled);
+const openAutocode = () => {
+  if (aiAvailable.value) {
+    return showOverlay('autocode', true);
+  }
+  flashMessage(
+    usePage().props.desktop?.host
+      ? 'Autocoding is off. Turn it on under "Sharing & autocoding" (globe icon in the left menu).'
+      : 'Autocoding is off. Ask the person who shares this OpenQDA to turn it on.'
+  );
 };
 
 //------------------------------------------------------------------------

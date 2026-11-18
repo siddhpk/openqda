@@ -13,6 +13,8 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         $schedule->command('queue:flush')->everyMinute();
+        // optional AI layer: drop cached embeddings after AI_CACHE_TTL_DAYS
+        $schedule->command('ai:prune')->daily();
     }
 
     /**

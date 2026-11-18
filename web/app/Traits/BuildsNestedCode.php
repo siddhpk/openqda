@@ -82,6 +82,7 @@ trait BuildsNestedCode
                 'createdAt' => $s->created_at,
                 'updatedAt' => $s->updated_at,
                 'source_id' => $s->source_id,
+                'origin' => $s->origin,
             ];
         })->toArray();
     }

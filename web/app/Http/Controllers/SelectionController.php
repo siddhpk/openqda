@@ -7,6 +7,7 @@ use App\Http\Requests\ChangeCodeRequest;
 use App\Http\Requests\DeleteOrphanSelectionRequest;
 use App\Http\Requests\DeleteSelectionRequest;
 use App\Http\Requests\StoreSelectionRequest;
+use App\Models\AutocodeRun;
 use App\Models\Code;
 use App\Models\Project;
 use App\Models\Selection;
@@ -29,6 +30,13 @@ class SelectionController extends Controller
     public function store(StoreSelectionRequest $request, Project $project, Source $source, Code $code)
     {
         $data = $request->validated();
+        // provenance must name an autocoding run of this project
+        if (! empty($data['origin'])) {
+            $runId = (int) substr($data['origin'], strlen('autocode:'));
+            if (! AutocodeRun::where('id', $runId)->where('project_id', $project->id)->exists()) {
+                return response()->json(['message' => 'Unknown autocoding run.', 'errors' => ['origin' => ['Unknown autocoding run.']]], 422);
+            }
+        }
         $data['id'] = $request->input('textId');
         $data['code_id'] = $code->id;
         $data['source_id'] = $source->id;

@@ -162,6 +162,11 @@ Route::middleware([
     Route::delete('/projects/{project}/notes/{note}', [NoteController::class, 'destroy'])->name('notes.destroy');
 
     /**
+     * Embeddings & Autocoding module (inactive unless AI_ENABLED=true and the project is opted in)
+     */
+    require __DIR__.'/autocoding.php';
+
+    /**
      * Others
      */
     Route::post('/user/navigation', [UserNavigationController::class, 'update']);

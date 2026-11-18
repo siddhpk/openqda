@@ -29,6 +29,7 @@ class StoreSelectionRequest extends FormRequest
             'start_position' => 'required|integer',
             'end_position' => 'required|integer',
             'description' => 'sometimes|string',
+            'origin' => ['sometimes', 'nullable', 'string', 'max:64', 'regex:/^autocode:\d+$/'],
         ];
     }
 

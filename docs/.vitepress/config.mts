@@ -63,6 +63,7 @@ export default defineConfig({
         items: [
           {text: 'Overview', link: '/plugins/overview'},
           {text: 'Visualization', link: '/plugins/visualization'},
+          {text: 'Embeddings & Autocoding', link: '/plugins/autocoding'},
         ]
       },
       {

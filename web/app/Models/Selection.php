@@ -27,6 +27,7 @@ class Selection extends Model implements Auditable
         'project_id',
         'start_position',
         'end_position',
+        'origin',
     ];
 
     // remove values when saving audits

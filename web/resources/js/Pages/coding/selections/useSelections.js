@@ -21,7 +21,7 @@ export const useSelections = () => {
     state.selected = { code, parent };
     return true;
   };
-  const createSelection = async ({ code, index, length, text }) => {
+  const createSelection = async ({ code, index, length, text, origin }) => {
     if (!length || !code?.id) {
       return;
     }
@@ -43,6 +43,7 @@ export const useSelections = () => {
       length,
       text,
       code: rawCode,
+      origin: origin ?? null,
     };
 
     const { response, error } = await Selections.store({
@@ -52,6 +53,7 @@ export const useSelections = () => {
       start,
       end,
       text,
+      origin,
     });
 
     if (error) throw error;

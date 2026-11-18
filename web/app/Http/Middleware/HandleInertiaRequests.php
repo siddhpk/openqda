@@ -83,6 +83,8 @@ class HandleInertiaRequests extends Middleware
             'sharedTeam' => $team?->only('id', 'name'),
             'usersInPages' => [],
             'teamMembers' => $teamMembers,
+            // optional AI layer: only the global flag, project opt-in is fetched on demand
+            'ai' => ['enabled' => (bool) config('ai.enabled', false)],
             // Lazily...
             'auth.user' => fn () => $request->user()
                 ? $request->user()->only('id', 'name', 'email', 'profile_photo_url', 'research_requested', 'research_consent', 'privacy_consent', 'terms_consent', 'email_verified_at')

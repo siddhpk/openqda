@@ -137,6 +137,14 @@ class Project extends Model implements Auditable
         return $this->hasMany(Variable::class, 'project_id');
     }
 
+    /**
+     * Opt-in record for the optional AI features.
+     */
+    public function aiSetting()
+    {
+        return $this->hasOne(ProjectAiSetting::class, 'project_id');
+    }
+
     public function getAllCodesAttribute()
     {
         $codes = collect();  // Create an empty collection

@@ -52,6 +52,21 @@ cp .env.example .env
 You will later need to configure the database by editing the `DB_`
 entries in `.env` to reflect your database connection details.
 
+### 4. Install Ollama (optional, for autocoding)
+
+OpenQDA's only AI feature, embedding-based autocoding, is off by default.
+If you want to use it, install [Ollama](https://ollama.com/download)
+first. It is the only supported embedding provider. Then download the
+embedding model once:
+
+```shell
+ollama pull nomic-embed-text
+```
+
+You can skip this step if you do not plan to use autocoding.
+See [Embeddings & Autocoding](../plugins/autocoding.md) for how to
+enable the feature.
+
 
 ## Decide for a Setup
 

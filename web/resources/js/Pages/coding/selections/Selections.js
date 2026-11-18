@@ -156,7 +156,15 @@ Selections.sort.byRange = (a, b) => {
  * @param end
  * @return {Promise<BackendRequest>}
  */
-Selections.store = async ({ projectId, sourceId, code, text, start, end }) => {
+Selections.store = async ({
+  projectId,
+  sourceId,
+  code,
+  text,
+  start,
+  end,
+  origin,
+}) => {
   const codeId = code.id;
   const textId = randomUUID();
   const payload = {
@@ -165,6 +173,10 @@ Selections.store = async ({ projectId, sourceId, code, text, start, end }) => {
     start_position: start,
     end_position: end,
   };
+  // provenance of machine-suggested segments, e.g. "autocode:12"
+  if (origin) {
+    payload.origin = origin;
+  }
 
   const { response, error } = await request({
     url: `/projects/${projectId}/sources/${sourceId}/codes/${codeId}`,
