@@ -304,6 +304,20 @@ It guides you in where to place your import and where to call the registration.
 From here, the plugin is automatically integrated in the Analysis page.
 
 
+## Code × Source Matrix and Code Co-occurrence
+
+Two default plugins added by the *Visualization plugins* module, an add-on for OpenQDA 1.0.8 without migrations or
+settings. To install it, apply the module's commit and rebuild the client (`npm run build`).
+
+- **Code × Source Matrix** (`matrix`): codes by source or by a source variable, as counts or excerpts, with CSV
+  export.
+- **Code Co-occurrence** (`cooccurrence`): how often segments of two codes overlap or lie close together in the same
+  source, optionally as Jaccard index, with CSV export. With the Analysis Toolkit module, it suggests recording a
+  meaningful pairing as a relationship on the Mind Map page.
+
+Both are registered in `web/plugins/visualization/index.js`. Their helpers are tested in
+`web/resources/js/Pages/analysis/visualization/matrix.test.js` (`npm run ci:unit -- matrix`).
+
 ## Extending the default plugins
 
 > Important! If you intend to extend the default plugins for [openqda.org](https://openqda.org)
