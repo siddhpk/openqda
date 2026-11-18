@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\Coding\SelectionChanged;
 use App\Http\Requests\ChangeCodeRequest;
 use App\Http\Requests\DeleteOrphanSelectionRequest;
 use App\Http\Requests\DeleteSelectionRequest;
@@ -10,6 +11,7 @@ use App\Models\Code;
 use App\Models\Project;
 use App\Models\Selection;
 use App\Models\Source;
+use App\Services\Collab\LiveCoding;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -34,6 +36,7 @@ class SelectionController extends Controller
         $data['project_id'] = $project->id;
 
         $selection = Selection::create($data);
+        LiveCoding::selection($selection, SelectionChanged::CREATED);
 
         return response()->json(['message' => 'Selection saved successfully!', 'selection' => $selection]);
     }
@@ -53,6 +56,7 @@ class SelectionController extends Controller
         $selection->modifying_user_id = auth()->id();
         $selection->updated_at = now();
         $selection->save();
+        LiveCoding::selection($selection, SelectionChanged::UPDATED);
 
         // Return a response
         return response()->json(['success' => true, 'message' => 'Code updated successfully']);
@@ -74,6 +78,7 @@ class SelectionController extends Controller
 
             // Delete the database record
             $selection->delete();
+            LiveCoding::selection($selection, SelectionChanged::DELETED);
 
             return response()->json(['success' => true, 'message' => 'Text deleted successfully from code']);
         } catch (\Exception $e) {
@@ -91,6 +96,7 @@ class SelectionController extends Controller
         try {
             // Delete the database record
             $selection->delete();
+            LiveCoding::selection($selection, SelectionChanged::DELETED);
 
             return response()->json(['success' => true, 'message' => 'Selection deleted successfully']);
         } catch (\Exception $e) {

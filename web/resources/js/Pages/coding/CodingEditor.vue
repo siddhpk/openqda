@@ -135,8 +135,14 @@ import { cn } from '../../utils/css/cn.js';
 import { createHash } from '../../utils/createHash.js';
 import { useZoom } from '../../editor/useZoom.js';
 import Button from '../../Components/interactive/Button.vue';
+import { useCoderFilter } from './collab/useCoderFilter.js';
+import { useUsers } from '../../domain/teams/useUsers.js';
 
 const editorContent = ref('');
+const { coderId, isVisible } = useCoderFilter();
+const { getMemberBy } = useUsers();
+/** segments shown under the current "Coded by" filter */
+const visible = (docs) => (docs ?? []).filter(isVisible);
 const contextMenu = useContextMenu();
 const { selected, createSelection, markToDelete } = useSelections();
 const { observe, selections, selectionsByIndex } = useCodes();
@@ -238,6 +244,8 @@ onMounted(() => {
     }
   });
   const hl = quillInstance.getModule('highlight');
+  // tooltips name the team member who coded a segment
+  hl.coderName = (id) => getMemberBy(id)?.name ?? null;
   const ln = quillInstance.getModule('lineNumber');
   window.quill = quillInstance;
 
@@ -245,26 +253,37 @@ onMounted(() => {
     added: (docs, allDocs) => {
       // XXX: this currently re-renders the entire editor source
       // which runs smooth for now but we may have to test this for larger documents!
-      hl.add(allDocs ?? docs);
+      hl.add(visible(allDocs ?? docs));
     },
     updated: (docs, allDocs) => {
       // XXX: this currently re-renders the entire editor source
       // which runs smooth for now but we may have to test this for larger documents!
       const target = allDocs ?? docs;
-      const toRemove = target.filter((d) => d.code.active === false);
-      const toKeep = target.filter((d) => d.code.active !== false);
+      const shown = (d) => d.code.active !== false && isVisible(d);
+      const toRemove = target.filter((d) => !shown(d));
+      const toKeep = target.filter(shown);
       hl.removeAll(toRemove);
       hl.add(toKeep);
     },
     removed: (docs) => {
       docs.forEach((doc) => hl.remove(doc));
       hl.add(
-        selections.value.filter((sel) => {
-          return !docs.some((doc) => doc.id === sel.id);
-        })
+        visible(
+          selections.value.filter((sel) => {
+            return !docs.some((doc) => doc.id === sel.id);
+          })
+        )
       );
     },
   });
+
+  // "Coded by" filter changed: redraw all highlights
+  disposables.add(
+    watch(coderId, () => {
+      hl.removeAll(selections.value);
+      hl.add(visible(selections.value));
+    })
+  );
 
   disposables.add(disposeSelectionObserver);
 
@@ -283,19 +302,19 @@ onMounted(() => {
   };
   const notesObserver = observe('store/notes', {
     added: (docs) => {
-      hl.add(selectionsByNotes(docs));
+      hl.add(visible(selectionsByNotes(docs)));
       ln._update();
     },
     removed: (docs) => {
       hl.removeAll(selectionsByNotes(docs));
-      hl.add(selectionsByNotes(docs));
+      hl.add(visible(selectionsByNotes(docs)));
       ln._update();
     },
   });
   disposables.add(notesObserver);
 
   const addSelections = (entries) => {
-    hl.add(entries);
+    hl.add(visible(entries));
     updating.value = false;
   };
 

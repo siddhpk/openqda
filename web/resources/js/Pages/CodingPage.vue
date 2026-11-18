@@ -98,6 +98,8 @@
           class="overflow-y-auto overflow-x-hidden w-full h-full"
         >
           <template #actions>
+            <LiveViewers v-if="props.source" />
+            <CoderFilter v-if="props.source && !sorting" />
             <Transition name="fade">
               <span v-if="sorting" class="text-sm text-foreground/80">
                 Coding is blocked while sorting.
@@ -240,6 +242,9 @@ import Headline3 from '../Components/layout/Headline3.vue';
 import { useCodeTree } from './coding/tree/useCodeTree.js';
 import VariablesList from '../domain/variables/VariablesList.vue';
 import { useVariables } from '../domain/variables/useVariables.js';
+import CoderFilter from './coding/collab/CoderFilter.vue';
+import LiveViewers from './coding/collab/LiveViewers.vue';
+import { useLiveCoding } from '../collab/useLiveCoding.js';
 
 const props = defineProps(['source', 'sources', 'allCodes', 'projectId']);
 
@@ -396,6 +401,7 @@ const CleanupCtx = useCleanup();
 // PAGE
 //------------------------------------------------------------------------
 const pageTitle = ref('Coding');
+const liveCoding = useLiveCoding();
 
 onMounted(async () => {
   const fileId = new URLSearchParams(window.location.search).get('source');
@@ -421,10 +427,13 @@ onMounted(async () => {
 
   initNotes();
   initVariables();
+  // after the stores are filled, so that live changes apply to them
+  liveCoding.start();
 });
 
 onBeforeUnmount(() => {
   setSorting(null);
+  liveCoding.stop();
 });
 
 const onSourceSelected = (file) => {

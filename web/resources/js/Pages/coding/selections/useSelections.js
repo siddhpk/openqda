@@ -11,7 +11,7 @@ const state = reactive({
 });
 
 export const useSelections = () => {
-  const { projectId, source } = usePage().props;
+  const { projectId, source, auth } = usePage().props;
   const sourceId = source?.id;
   const key = `${projectId}-${sourceId}`;
   const { selected, toDelete, current } = toRefs(state);
@@ -59,6 +59,8 @@ export const useSelections = () => {
 
     const s = response.data.selection;
     selection.id = s.id; // update missing id
+    // needed for the "Coded by" filter and tooltips
+    selection.creating_user_id = s.creating_user_id ?? auth?.user?.id ?? null;
 
     selectionStore.add(selection);
     if (!code.text) {

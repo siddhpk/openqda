@@ -45,6 +45,7 @@ export default defineConfig({
           { text: 'Backend',         collapsed: false, items: [
               {text: 'Overview', link: '/development/backend/backend'},
               {text: 'Websocket', link: '/development/backend/websockets'},
+              {text: 'Live Team Coding', link: '/development/backend/live-coding'},
               {text: 'Testing', link: '/development/backend/testing'},
             ]
           },

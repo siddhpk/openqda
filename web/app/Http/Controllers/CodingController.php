@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\Coding\CodeChanged;
 use App\Http\Requests\DestroyCodeRequest;
 use App\Http\Requests\ShowCodingPageRequest;
 use App\Http\Requests\StoreCodeRequest;
@@ -12,6 +13,7 @@ use App\Models\Note;
 use App\Models\Project;
 use App\Models\Source;
 use App\Models\Variable;
+use App\Services\Collab\LiveCoding;
 use App\Traits\BuildsNestedCode;
 use App\Traits\SourceExists;
 use App\Traits\ValidatesStoragePath;
@@ -42,6 +44,7 @@ class CodingController extends Controller
         }
 
         $code->save();
+        LiveCoding::code($code, CodeChanged::CREATED, $project->id);
 
         return response()->json(['message' => 'Code successfully created', 'id' => $code->id], 201);
     }
@@ -202,6 +205,9 @@ class CodingController extends Controller
 
                 // Only return JSON response for the initial call, not for recursive calls
                 if (! $isRecursiveCall) {
+                    // receivers remove the subcodes and all segments themselves
+                    \DB::afterCommit(fn () => LiveCoding::code($code, CodeChanged::DELETED, $project->id));
+
                     return response()->json(['message' => 'Code and its selections successfully deleted']);
                 }
 
@@ -237,6 +243,7 @@ class CodingController extends Controller
         }
 
         $code->save();
+        LiveCoding::code($code, CodeChanged::UPDATED, $project->id);
 
         return response()->json(['message' => 'Code updated successfully', 'code' => $code]);
     }
@@ -248,6 +255,7 @@ class CodingController extends Controller
     {
         // Remove the parent_id from the code
         $code->removeParent();
+        LiveCoding::code($code->fresh() ?? $code, CodeChanged::UPDATED, $project->id);
 
         // Return a success response
         return response()->json(['message' => 'Parent removed successfully']);
@@ -261,6 +269,7 @@ class CodingController extends Controller
 
         // Update the parent_id from the code's parent
         $code->moveUpHierarchy();
+        LiveCoding::code($code->fresh() ?? $code, CodeChanged::UPDATED, $project->id);
 
         // Return a success responsep
         return response()->json(['message' => 'Change successfully made']);

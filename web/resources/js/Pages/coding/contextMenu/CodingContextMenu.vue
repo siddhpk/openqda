@@ -189,6 +189,11 @@ const createInVivo = () => {
                     getMemberBy(selection.creating_user_id)?.profile_photo_url
                   "
                 />
+                <span
+                  v-if="getMemberBy(selection.creating_user_id)"
+                  class="font-normal truncate"
+                  >{{ getMemberBy(selection.creating_user_id)?.name }}</span
+                >
               </div>
               <button
                 v-if="toDeleteSize > 0"

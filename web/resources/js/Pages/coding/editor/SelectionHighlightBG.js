@@ -32,6 +32,37 @@ export class SelectionHighlightBG extends Module {
     this.options = options;
 
     this.active = {};
+
+    /**
+     * Resolves a user id to a display name for tooltips ("coded by …").
+     * Set by the editor; returns null when unknown.
+     * @type {(id: number) => (string|null)}
+     */
+    this.coderName = () => null;
+  }
+
+  /**
+   * Names of the team members whose segments of a code cover a range.
+   * @param entries {object[]} the selections being highlighted
+   * @param codeId {string}
+   * @param x {number} start of the range
+   * @param y {number} end of the range
+   * @return {string[]}
+   */
+  codersOf(entries, codeId, x, y) {
+    const ids = new Set();
+    entries.forEach((e) => {
+      if (
+        e.code?.id === codeId &&
+        e.start <= x &&
+        e.end >= y &&
+        e.creating_user_id !== undefined &&
+        e.creating_user_id !== null
+      ) {
+        ids.add(e.creating_user_id);
+      }
+    });
+    return [...ids].map((id) => this.coderName(id)).filter(Boolean);
   }
 
   current(range) {
@@ -85,7 +116,11 @@ export class SelectionHighlightBG extends Module {
         const format = this.quill.getFormat(segment.x, segment.y - segment.x);
         format.class = cn(format.class, overlapClasses());
         format.background = 'transparent';
-        format.title = `${codes.length} overlapping codes: ${codes.map((c) => c.name).join(',')} [${segment.x}:${segment.y}]. Right-click to open menu`;
+        const described = codes.map((c) => {
+          const by = this.codersOf(entries, c.id, segment.x, segment.y);
+          return by.length ? `${c.name} (coded by ${by.join(', ')})` : c.name;
+        });
+        format.title = `${codes.length} overlapping codes: ${described.join(', ')} [${segment.x}:${segment.y}]. Right-click to open menu`;
 
         if (hasNotes) {
           format.class = cn(format.class, notesClass());
@@ -99,9 +134,12 @@ export class SelectionHighlightBG extends Module {
         // for it and fall back to the first code, of none is found
         const code = codes.find((code) => code.active !== false) ?? codes[0];
         if (!code) return;
+        const by = this.codersOf(entries, code.id, segment.x, segment.y);
         this.highlight({
           id: code.id,
-          title: code.name,
+          title: by.length
+            ? `${code.name} – coded by ${by.join(', ')}`
+            : code.name,
           color: code.color,
           start: segment.x,
           length: segment.y - segment.x,
