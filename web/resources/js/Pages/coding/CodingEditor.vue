@@ -11,9 +11,10 @@
       <div class="flex gap-1 justify-end items-center">
         <Transition name="fade">
           <Button
-            v-if="!blocked && range?.length"
+            v-if="!blocked && (range?.length || menuRange)"
             variant="outline-secondary"
-            @click="showContextMenu"
+            @mousedown.prevent
+            @click="showContextMenu($event, { fromButton: true })"
             class="hidden"
             :data-x="rangeX"
             :data-y="rangeY"
@@ -64,6 +65,9 @@
         id="editor"
         class="grow"
         @contextmenu="showContextMenu"
+        @touchstart.passive="onTouch(true)"
+        @touchend.passive="onTouch(false)"
+        @touchcancel.passive="onTouch(false)"
         @dragenter.prevent
         @dragover.prevent
         @drop.prevent
@@ -75,9 +79,10 @@
     >
       <Transition name="fade">
         <Button
-          v-if="!blocked && range?.length"
+          v-if="!blocked && (range?.length || menuRange)"
           variant="outline-secondary"
-          @click="showContextMenu"
+          @mousedown.prevent
+          @click="showContextMenu($event, { fromButton: true })"
           class="inline-flex md:hidden"
           >Menu</Button
         >
@@ -175,6 +180,18 @@ let quillInstance;
 const rangeX = ref(-1);
 const rangeY = ref(-1);
 
+// True while a finger is on the editor. A long press on touch devices fires
+// "contextmenu"; cancelling it would also cancel the native text selection.
+let touchActive = false;
+const onTouch = (active) => {
+  touchActive = active;
+};
+
+// Last non-empty selection. On phones, tapping the "Menu" button can clear the
+// browser selection before the click arrives, so the menu falls back to this
+// range. A caret placed in the text or closing the menu resets it.
+const menuRange = ref(null);
+
 onMounted(() => {
   quillInstance = new Quill('#editor', {
     theme: 'snow',
@@ -214,6 +231,11 @@ onMounted(() => {
     }
     const text = data ? quillInstance.getText(data) : '';
     setRange(data, text);
+    if (data?.length) {
+      menuRange.value = { index: data.index, length: data.length };
+    } else if (data) {
+      menuRange.value = null;
+    }
   });
   const hl = quillInstance.getModule('highlight');
   const ln = quillInstance.getModule('lineNumber');
@@ -356,7 +378,7 @@ watch(selected, async ({ code }) => {
 });
 
 // TODO move to useContextMenu
-const showContextMenu = (event) => {
+const showContextMenu = (event, { fromButton = false } = {}) => {
   if (event.shiftKey || props.blocked) {
     // Allow the browser's context menu to appear
     return;
@@ -364,13 +386,33 @@ const showContextMenu = (event) => {
 
   const isMobile = event.pointerType === 'touch' || event.type === 'touchstart';
 
+  // A long press on a touch screen selects text natively and fires
+  // "contextmenu". Leave it alone; the "Menu" button opens the coding menu.
+  const isLongPress =
+    event.type === 'contextmenu' &&
+    (event.pointerType === 'touch' ||
+      event.pointerType === 'pen' ||
+      touchActive);
+  if (isLongPress) {
+    return;
+  }
+
   event.preventDefault();
   event.stopPropagation();
 
   // XXX: it should be noted, that on Safari and mobile
   // browsers there is always a selection > 0 because they
   // try to auto-select some text.
-  const selectedArea = quillInstance.getSelection();
+  let selectedArea = quillInstance.getSelection();
+  if (fromButton && !selectedArea?.length && menuRange.value) {
+    // the tap on the button cleared the browser selection: restore it, so
+    // that choosing a code applies to the text the user selected
+    selectedArea = menuRange.value;
+    setRange(
+      selectedArea,
+      quillInstance.getText(selectedArea.index, selectedArea.length)
+    );
+  }
   const hasSelection = selectedArea?.length;
   const linkedCodeId = event.target.getAttribute('data-code-id');
   const currentSelections = selectionsByIndex(
@@ -451,6 +493,7 @@ const showContextMenu = (event) => {
 };
 
 const contextMenuClosed = () => {
+  menuRange.value = null;
   if (!quillInstance) return;
   const hm = quillInstance.getModule('highlight');
   hm.current();
