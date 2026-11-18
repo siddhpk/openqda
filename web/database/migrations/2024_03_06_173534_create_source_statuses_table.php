@@ -12,7 +12,11 @@ return new class extends Migration
     public function up()
     {
         Schema::create('source_statuses', function (Blueprint $table) {
-            $table->uuid('id')->default(DB::raw('(UUID())'));
+            $id = $table->uuid('id');
+            // MySQL/MariaDB generate a default; SQLite (laptop edition) gets ids from the application
+            if (DB::connection()->getDriverName() !== 'sqlite') {
+                $id->default(DB::raw('(UUID())'));
+            }
             $table->primary('id');
             $table->foreignUuid('source_id')->constrained('sources');
             $table->text('status');

@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\Project;
 use App\Models\UserGlobalPreference;
 use App\Models\UserProjectPreference;
+use App\Services\Desktop\Channel;
 use App\Services\ProjectTeamResolverService;
 use App\Services\Qda\Vocabulary;
 use Illuminate\Http\Request;
@@ -80,6 +81,11 @@ class HandleInertiaRequests extends Middleware
             ],
             'privacy' => $privacy,
             'terms' => $terms,
+            // laptop edition: show the Sharing page only to the person at this computer
+            'desktop' => [
+                'enabled' => Channel::desktop(),
+                'host' => Channel::isHost($request),
+            ],
             'projectId' => session('projectId'),
             'sharedTeam' => $team?->only('id', 'name'),
             'usersInPages' => [],

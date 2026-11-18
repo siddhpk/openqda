@@ -36,7 +36,8 @@ export default defineConfig({
         items: [
           {text: 'Preparations', link: '/installation/preparations'},
           {text: 'Docker', link: '/installation/docker'},
-          {text: 'Manual', link: '/installation/manual'}
+          {text: 'Manual', link: '/installation/manual'},
+          {text: 'Laptop Edition', link: '/installation/laptop-edition'}
         ]
       },
       {

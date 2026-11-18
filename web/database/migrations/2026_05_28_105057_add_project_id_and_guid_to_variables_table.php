@@ -4,6 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 return new class extends Migration
 {
@@ -25,6 +26,20 @@ return new class extends Migration
             $table->index('project_id');
             $table->unique('guid');
         });
+
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            // SQLite (laptop edition): same backfill without MySQL-only syntax
+            DB::statement('
+                UPDATE variables
+                SET project_id = (SELECT s.project_id FROM sources s WHERE s.id = variables.source_id)
+                WHERE project_id IS NULL
+            ');
+            DB::table('variables')->whereNull('guid')->pluck('id')->each(
+                fn ($id) => DB::table('variables')->where('id', $id)->update(['guid' => (string) Str::uuid()])
+            );
+
+            return;
+        }
 
         // Backfill project_id from the owning source so existing variables
         // (including lock variables created via Source::lock()) remain visible

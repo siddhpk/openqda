@@ -10,6 +10,7 @@ use App\Listeners\DeleteRelatedCodes;
 use App\Listeners\DeleteRelatedSources;
 use App\Listeners\DeleteSourceFiles;
 use App\Listeners\ListenUserDeletingItself;
+use App\Listeners\VerifyDesktopRegistration;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
@@ -24,6 +25,7 @@ class EventServiceProvider extends ServiceProvider
      */
     protected $listen = [
         Registered::class => [
+            VerifyDesktopRegistration::class,
             SendEmailVerificationNotification::class,
         ],
         ProjectDeleting::class => [

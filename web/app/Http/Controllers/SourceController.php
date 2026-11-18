@@ -191,6 +191,13 @@ class SourceController extends Controller
         // D - File is HTML already, then clean and store it directly
         // TODO: implemented
 
+        // With a synchronous queue (laptop edition, local development) the
+        // conversion job has already finished here: keep its final status.
+        $current = SourceStatus::where('source_id', $source->id)->value('status');
+        if ($status === 'converting' && in_array($current, ['converted:html', 'failed'], true)) {
+            $status = $current;
+        }
+
         // create initial source status
         $sourceStatus = SourceStatus::updateOrCreate(
             ['source_id' => $source->id],

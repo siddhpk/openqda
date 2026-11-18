@@ -163,3 +163,17 @@ Routes.profile = {
   },
   active: (name) => name.startsWith('profile'),
 };
+
+/**
+ * Laptop edition: share this computer's OpenQDA (host only).
+ * @type {Route}
+ */
+Routes.sharing = {
+  key: 'desktop.sharing',
+  name: 'sharing',
+  label: 'Sharing & autocoding',
+  path: () => href(Routes.sharing),
+  active: (name) => name.startsWith('desktop'),
+  // only the person at the computer running the laptop edition sees it
+  visible: (page) => Boolean(page?.props?.desktop?.host),
+};

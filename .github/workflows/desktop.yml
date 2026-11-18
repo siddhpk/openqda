@@ -1,0 +1,102 @@
+#
+# Builds the OpenQDA laptop edition installers (see desktop/README.md):
+#   Windows  OpenQDA-Setup-<version>.exe       (NSIS, built on Linux)
+#   macOS    OpenQDA-<version>-macos-arm64.dmg   (Apple silicon)
+#   Linux    openqda-<version>-linux-x86_64.tar.gz
+#
+# Run it from the Actions tab ("Run workflow") or by pushing a tag desktop-v*.
+# The installers are attached to the run as downloadable artifacts.
+#
+name: Desktop installers
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version label (default: git describe)'
+        required: false
+  push:
+    tags:
+      - 'desktop-v*'
+  pull_request:
+    paths:
+      - 'desktop/**'
+      - '.github/workflows/desktop.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  launcher-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Vet and test the launcher
+        working-directory: desktop/launcher
+        run: |
+          test -z "$(gofmt -l .)"
+          go vet ./...
+          go test ./...
+          GOOS=windows go build -o /dev/null .
+          GOOS=darwin GOARCH=arm64 go build -o /dev/null .
+
+  build:
+    if: github.event_name != 'pull_request'
+    needs: launcher-tests
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # the Windows installer is built with NSIS on Linux
+          - os: ubuntu-24.04
+            target: windows-x86_64
+            artifact: desktop/dist/*.exe
+          - os: macos-14
+            target: macos-arm64
+            artifact: desktop/dist/*.dmg
+          - os: ubuntu-24.04
+            target: linux-x86_64
+            artifact: desktop/dist/*.tar.gz
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer:v2
+          extensions: dom, simplexml, fileinfo, intl, zip, gd, sqlite3, pdo_sqlite
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install NSIS
+        if: matrix.target == 'windows-x86_64'
+        run: sudo apt-get update && sudo apt-get install -y nsis
+      - name: Build the installer
+        shell: bash
+        env:
+          VERSION: ${{ inputs.version }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          if [ -n "$VERSION" ]; then
+            python desktop/build/build.py --target "$TARGET" --version "$VERSION"
+          else
+            python desktop/build/build.py --target "$TARGET"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openqda-${{ matrix.target }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: error

@@ -198,7 +198,7 @@ const submit = () => {
         />
       </div>
 
-      <div>
+      <div v-if="!$page.props.desktop?.enabled">
         <InputLabel
           v-show="false"
           for="altcha_widget"

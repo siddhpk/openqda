@@ -363,7 +363,10 @@ onMounted(() => {
     sessionStorage.setItem('projectId', projectId);
   }
 
-  const routes = NavRoutes.map(({ icon, route }) => {
+  const page = usePage();
+  const routes = NavRoutes.filter(
+    ({ route }) => !route.visible || route.visible(page)
+  ).map(({ icon, route }) => {
     const href = route.path(projectId);
     const disabled = !href;
     const count = 0;

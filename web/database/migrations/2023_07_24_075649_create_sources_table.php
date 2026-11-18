@@ -12,14 +12,22 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('sources', function (Blueprint $table) {
-            $table->uuid('id')->default(DB::raw('(UUID())'));
+            $id = $table->uuid('id');
+            // MySQL/MariaDB generate a default; SQLite (laptop edition) gets ids from the application
+            if (DB::connection()->getDriverName() !== 'sqlite') {
+                $id->default(DB::raw('(UUID())'));
+            }
             $table->primary('id');
             $table->string('name');
             $table->text('description')->nullable();
             $table->foreignId('creating_user_id')->constrained('users');
             $table->foreignId('modifying_user_id')->nullable()->constrained('users');
             $table->foreignId('project_id')->constrained('projects');
-            $table->enum('type', ['text', 'picture', 'pdf', 'audio', 'video']);
+            $type = $table->enum('type', ['text', 'picture', 'pdf', 'audio', 'video']);
+            if (DB::connection()->getDriverName() === 'sqlite') {
+                // MySQL implicitly defaults a NOT NULL enum to its first value; SQLite needs it spelled out
+                $type->default('text');
+            }
             $table->string('base_path')->default('');
             $table->text('plain_text_content')->nullable();
             $table->string('plain_text_path')->nullable();

@@ -20,6 +20,15 @@ $app = new Application(
     $_ENV['APP_BASE_PATH'] ?? dirname(__DIR__)
 );
 
+// On Windows an absolute path starts with a drive letter (C:\...), which
+// Laravel does not recognise when APP_*_CACHE points outside the app folder
+// (the laptop edition keeps its caches in the per-user data folder).
+if (PHP_OS_FAMILY === 'Windows') {
+    foreach (array_merge(range('A', 'Z'), range('a', 'z')) as $drive) {
+        $app->addAbsoluteCachePathPrefix($drive.':');
+    }
+}
+
 /*
 |--------------------------------------------------------------------------
 | Bind Important Interfaces

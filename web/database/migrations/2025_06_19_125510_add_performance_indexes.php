@@ -81,6 +81,9 @@ return new class extends Migration
     private function indexExists($table, $indexName)
     {
         $connection = Schema::getConnection();
+        if ($connection->getDriverName() === 'sqlite') {
+            return Schema::hasIndex($table, $indexName);
+        }
         $databaseName = $connection->getDatabaseName();
 
         $result = $connection->select('

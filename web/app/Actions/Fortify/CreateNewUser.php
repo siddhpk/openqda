@@ -4,6 +4,7 @@ namespace App\Actions\Fortify;
 
 use App\Models\Team;
 use App\Models\User;
+use App\Services\Desktop\Channel;
 use App\Services\ResearchConsentService;
 use GrantHolle\Altcha\Rules\ValidAltcha;
 use Illuminate\Support\Facades\DB;
@@ -33,8 +34,12 @@ class CreateNewUser implements CreatesNewUsers
             'password' => $this->passwordRules(),
         ];
 
-        // Apply the ValidAltcha rule only if not in testing environment
-        if (app()->environment('testing')) {
+        // Apply the ValidAltcha rule only if not in testing environment.
+        // Laptop edition: visitors already passed the host's access code, and
+        // the proof of work cannot run on a plain-HTTP network address.
+        if (Channel::desktop()) {
+            $rules['altcha'] = ['nullable', 'string'];
+        } elseif (app()->environment('testing')) {
             $rules['altcha'] = ['required', 'string'];
         } else {
             $rules['altcha'] = ['required', new ValidAltcha];
