@@ -25,6 +25,7 @@ it('has correct fillable attributes', function () {
         'target',
         'visibility',
         'type',
+        'memo_type',
         'scope',
         'creating_user_id',
     ]);

@@ -130,6 +130,14 @@ class Project extends Model implements Auditable
     }
 
     /**
+     * Relationships between the codes of this project.
+     */
+    public function codeRelations(): HasMany
+    {
+        return $this->hasMany(CodeRelation::class, 'project_id');
+    }
+
+    /**
      * Get all variables related to this project.
      */
     public function variables()

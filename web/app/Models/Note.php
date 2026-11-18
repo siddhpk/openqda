@@ -18,6 +18,7 @@ class Note extends Model implements Auditable
         'target',
         'visibility',
         'type',
+        'memo_type',
         'scope',
         'creating_user_id',
     ];
@@ -40,6 +41,8 @@ class Note extends Model implements Auditable
     public const SCOPE_CODE = 'code';
 
     public const SCOPE_PROJECT = 'project';
+
+    public const SCOPE_RELATION = 'relation';
 
     /**
      * Get the project this note belongs to.
@@ -67,6 +70,7 @@ class Note extends Model implements Auditable
             self::SCOPE_SOURCE => Source::find($this->target),
             self::SCOPE_CODE => Code::find($this->target),
             self::SCOPE_PROJECT => Project::find($this->target),
+            self::SCOPE_RELATION => CodeRelation::find($this->target),
             default => null,
         };
     }

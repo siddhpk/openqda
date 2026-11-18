@@ -4,6 +4,9 @@ namespace App\Http\Requests;
 
 use App\Models\Code;
 use App\Rules\PreventInvalidCodeHierarchy;
+use App\Services\Qda\CodeMeta;
+use App\Services\Qda\Vocabulary;
+use App\Services\Qda\VocabularySet;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
@@ -27,11 +30,17 @@ class UpdateCodeRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        return array_merge([
             'color' => 'sometimes|required|string|max:255',
             'title' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|required|string',
             'parent_id' => ['sometimes', 'nullable', 'uuid', new PreventInvalidCodeHierarchy($this->route('code')?->id)],
-        ];
+            'kind' => ['sometimes', 'nullable', 'in:'.implode(',', $this->vocabulary()->codeTypeKeys())],
+        ], CodeMeta::rules($this->vocabulary()));
+    }
+
+    private function vocabulary(): VocabularySet
+    {
+        return Vocabulary::for($this->route('project'));
     }
 }

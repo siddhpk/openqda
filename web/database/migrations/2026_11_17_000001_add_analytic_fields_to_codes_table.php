@@ -1,0 +1,27 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Analytic details of a code: its kind (code, category, theme) and
+     * method-specific details (definition, properties/dimensions, status ...).
+     */
+    public function up(): void
+    {
+        Schema::table('codes', function (Blueprint $table) {
+            $table->string('kind', 32)->nullable()->after('description');
+            $table->json('meta')->nullable()->after('kind');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('codes', function (Blueprint $table) {
+            $table->dropColumn(['kind', 'meta']);
+        });
+    }
+};

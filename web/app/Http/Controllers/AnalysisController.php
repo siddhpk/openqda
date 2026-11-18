@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ShowAnalysisPage;
 use App\Models\Code;
+use App\Models\CodeRelation;
 use App\Models\Note;
 use App\Models\Project;
 use App\Models\Selection;
@@ -63,7 +64,7 @@ class AnalysisController extends Controller
         // se we might get them lazily in the future
         $userId = Auth::id();
         $notes = Note::where('project_id', $project->id)
-            ->whereIn('type', ['project', 'source', 'code', 'selection'])
+            ->whereIn('type', ['project', 'source', 'code', 'selection', 'relation'])
             ->where(function ($query) use ($userId) {
                 // 1.1. ...visible for all team members
                 $query->where('visibility', 1)
@@ -84,6 +85,7 @@ class AnalysisController extends Controller
             'codes' => $allCodes,
             'codebooks' => $codebooks,
             'notes' => $notes,
+            'relations' => CodeRelation::where('project_id', $project->id)->get()->map->toClientArray()->values(),
             'project' => [
                 'name' => $project->name,
                 'description' => $project->description,

@@ -108,6 +108,22 @@
             </Transition>
             <Button
               v-if="props.source && !sorting"
+              @click="showOverlay('workflow', true)"
+              title="Analysis overview: your plan and what exists so far"
+              variant="outline"
+            >
+              <AcademicCapIcon class="w-4 h-4" />
+            </Button>
+            <Button
+              v-if="props.source && !sorting"
+              @click="showOverlay('memos', true)"
+              title="All memos of this project"
+              variant="outline"
+            >
+              <PencilSquareIcon class="w-4 h-4" />
+            </Button>
+            <Button
+              v-if="props.source && !sorting"
               @click="showOverlay('notes', true)"
               :title="`Manage notes for source '${props.source?.name}'`"
               variant="outline"
@@ -160,12 +176,25 @@
             </CreateDialog>
           </template>
         </CodingEditor>
+        <CodeDetailsDialog :codes="flatCodes" />
         <SideOverlay
           v-if="props.source"
           :title="overlayOptions[optionsType]?.label"
           :show="showOptions"
           @close="showOptions = false"
         >
+          <WorkflowPanel
+            v-if="optionsType === 'workflow'"
+            :codes="flatCodes"
+            @memo="openMemo"
+          />
+          <MemoPanel
+            v-if="optionsType === 'memos'"
+            :key="memoPanelKey"
+            :codes="flatCodes"
+            :source="props.source"
+            :initial-memo-type="memoPreset"
+          />
           <div class="p-2" v-if="optionsType === 'notes'">
             <Headline3 class="mb-2 p-2"
               >Notes linked to {{ props.source.name }}</Headline3
@@ -256,6 +285,13 @@ import Headline2 from '../Components/layout/Headline2.vue';
 import HelpResources from '../Components/HelpResources.vue';
 import { useInvivoText } from './coding/useInvivoText.js';
 import { useNotes } from '../domain/notes/useNotes.js';
+// Analysis Toolkit module
+import { AcademicCapIcon, PencilSquareIcon } from '@heroicons/vue/24/outline';
+import { Codes } from '../domain/codes/Codes.js';
+import { useCodingEditor } from './coding/useCodingEditor.js';
+import WorkflowPanel from './coding/qda/WorkflowPanel.vue';
+import MemoPanel from './coding/qda/MemoPanel.vue';
+import CodeDetailsDialog from './coding/qda/CodeDetailsDialog.vue';
 import SideOverlay from '../Components/layout/SideOverlay.vue';
 import NoteList from './coding/tree/NoteList.vue';
 import Headline3 from '../Components/layout/Headline3.vue';
@@ -398,6 +434,12 @@ const notesForSource = computed(() => {
 });
 
 const overlayOptions = {
+  workflow: {
+    label: 'Analysis overview',
+  },
+  memos: {
+    label: 'Memos',
+  },
   variables: {
     label: 'Manage Source Variables',
   },
@@ -436,6 +478,46 @@ const openAutocode = () => {
 // CLEANUP
 //------------------------------------------------------------------------
 const CleanupCtx = useCleanup();
+
+//------------------------------------------------------------------------
+// ANALYSIS TOOLKIT (overview, memos, code details)
+//------------------------------------------------------------------------
+const flatCodes = computed(() =>
+  props.source?.id
+    ? Codes.by(`${props.projectId}-${props.source.id}`).all()
+    : []
+);
+const memoPanelKey = ref(0);
+const memoPreset = ref('');
+const openMemo = ({ memoType }) => {
+  memoPreset.value = memoType ?? '';
+  memoPanelKey.value++;
+  showOverlay('memos', true);
+};
+
+// ?focus=start-end (e.g. "open in source" from evidence) selects a passage
+const focusFromUrl = async () => {
+  const match = /^(\d+)-(\d+)$/.exec(
+    new URLSearchParams(window.location.search).get('focus') ?? ''
+  );
+  if (!match) return;
+  const editor = useCodingEditor();
+  const [start, end] = [+match[1], +match[2]];
+  // the editor fills asynchronously: wait until the passage exists
+  for (let i = 0; i < 20; i++) {
+    if ((editor.instance()?.getLength() ?? 0) >= end) {
+      try {
+        editor.focusSelection({ start, end });
+      } catch {
+        // position outside the text
+      }
+      return;
+    }
+    await asyncTimeout(250);
+  }
+};
+// once the source has loaded
+watch(codingInitialized, (ready) => ready && focusFromUrl(), { once: true });
 
 //------------------------------------------------------------------------
 // PAGE

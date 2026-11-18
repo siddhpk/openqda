@@ -6,6 +6,7 @@ use App\Models\Project;
 use App\Models\UserGlobalPreference;
 use App\Models\UserProjectPreference;
 use App\Services\ProjectTeamResolverService;
+use App\Services\Qda\Vocabulary;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -97,6 +98,18 @@ class HandleInertiaRequests extends Middleware
                         ->first()
                     : null,
             ] : null,
+            // Analysis Toolkit: the vocabulary of the project shown on this page (if any)
+            'vocabulary' => function () use ($request) {
+                $project = $request->route('project');
+                if (! $project instanceof Project) {
+                    $project = is_scalar($project) ? Project::find($project) : null;
+                }
+                if (! $project || ! $request->user()?->can('view', $project)) {
+                    return null;
+                }
+
+                return Vocabulary::for($project)->toArray();
+            },
         ], [
             'shouldInterpolate' => true,
         ]);

@@ -62,6 +62,7 @@ export default defineConfig({
         text: 'Plugins',
         items: [
           {text: 'Overview', link: '/plugins/overview'},
+          {text: 'Analysis Toolkit', link: '/plugins/analysis-toolkit'},
           {text: 'Visualization', link: '/plugins/visualization'},
           {text: 'Embeddings & Autocoding', link: '/plugins/autocoding'},
         ]

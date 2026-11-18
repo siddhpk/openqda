@@ -5,9 +5,11 @@ namespace App\Providers;
 // use Illuminate\Support\Facades\Gate;
 
 use App\Models\Code;
+use App\Models\CodeRelation;
 use App\Models\Note;
 use App\Models\Project;
 use App\Models\Source;
+use App\Policies\CodeRelationPolicy;
 use App\Policies\CodesPolicy;
 use App\Policies\NotePolicy;
 use App\Policies\ProjectPolicy;
@@ -26,6 +28,7 @@ class AuthServiceProvider extends ServiceProvider
         Project::class => ProjectPolicy::class,
         Code::class => CodesPolicy::class,
         Note::class => NotePolicy::class,
+        CodeRelation::class => CodeRelationPolicy::class,
     ];
 
     /**

@@ -33,6 +33,10 @@ import { rgbToHex } from '../../../utils/color/toHex';
 import { useSelections } from '../selections/useSelections';
 import FormDialog from '../../../dialogs/FormDialog.vue';
 import NoteList from './NoteList.vue';
+import { AcademicCapIcon, ShareIcon } from '@heroicons/vue/24/outline';
+import { useCodeDetailsDialog } from '../../../domain/qda/useCodeDetailsDialog';
+import { useRelations } from '../../../domain/qda/useRelations';
+import { kindLabel, kindOf } from '../../../domain/qda/vocabulary';
 
 const { createCode, toggleCode, createCodeSchema, getCodebook } = useCodes();
 const { createNote, createNoteSchema } = useNotes();
@@ -194,6 +198,13 @@ const openCreateNoteDialog = (code) => {
 };
 
 //------------------------------------------------------------------------
+// ANALYTIC DETAILS / RELATIONSHIPS
+//------------------------------------------------------------------------
+const { open: openCodeDetails } = useCodeDetailsDialog();
+const { relationsOf } = useRelations();
+const relationCount = computed(() => relationsOf(props.code.id).length);
+
+//------------------------------------------------------------------------
 // Range
 //------------------------------------------------------------------------
 const { range } = useRange();
@@ -261,6 +272,24 @@ const { range } = useRange();
       </div>
 
       <div class="flex justify-between items-center gap-2" v-if="!sorting">
+        <!-- kind and relationships -->
+        <span
+          v-if="kindOf(code) !== 'code' || code.meta?.core"
+          class="text-[10px] px-1 rounded border border-foreground/30 whitespace-nowrap"
+          :title="kindLabel(code)"
+          >{{ kindLabel(code) }}</span
+        >
+        <Button
+          v-if="relationCount"
+          :title="`${relationCount} relationship(s) – show`"
+          variant="ghost"
+          size="sm"
+          class="px-1! py-1! my-0! w-8 text-xs hover:text-secondary"
+          @click.prevent="openCodeDetails(code, 'relations')"
+        >
+          <ShareIcon class="w-4 h-4" />
+          <span class="text-xs">{{ relationCount }}</span>
+        </Button>
         <!-- show texts -->
         <Button
           :title="showTexts ? 'Hide selections list' : 'Show selections list'"
@@ -349,6 +378,21 @@ const { range } = useRange();
               <div class="flex items-center">
                 <PencilIcon class="w-4 h-4 me-2" />
                 <span>Edit code</span>
+              </div>
+            </DropdownLink>
+            <DropdownLink as="button" @click.prevent="openCodeDetails(code)">
+              <div class="flex items-center">
+                <AcademicCapIcon class="w-4 h-4 me-2" />
+                <span>Analytic details</span>
+              </div>
+            </DropdownLink>
+            <DropdownLink
+              as="button"
+              @click.prevent="openCodeDetails(code, 'relations')"
+            >
+              <div class="flex items-center">
+                <ShareIcon class="w-4 h-4 me-2" />
+                <span>Relationships</span>
               </div>
             </DropdownLink>
             <DropdownLink as="button">

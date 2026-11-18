@@ -9,6 +9,7 @@ use App\Http\Requests\StoreCodeRequest;
 use App\Http\Requests\UpdateCodeRequest;
 use App\Models\Code;
 use App\Models\Codebook;
+use App\Models\CodeRelation;
 use App\Models\Note;
 use App\Models\Project;
 use App\Models\Source;
@@ -41,6 +42,12 @@ class CodingController extends Controller
         $code->codebook_id = $request->input('codebook');
         if ($request->input('parent_id')) {
             $code->parent_id = $request->input('parent_id');
+        }
+        if ($request->filled('kind')) {
+            $code->kind = $request->input('kind');
+        }
+        if ($request->has('meta')) {
+            $code->setAnalyticMeta($request->input('meta'), $project);
         }
 
         $code->save();
@@ -120,7 +127,7 @@ class CodingController extends Controller
         $notes = Note::where('project_id', $project->id)
             ->where(function ($query) use ($selectionIds, $userId, $sourceId) {
                 // 1. all project and code level notes...
-                $query->whereIn('type', ['project', 'code'])
+                $query->whereIn('type', ['project', 'code', 'relation'])
                     ->where(function ($query) use ($userId) {
                         // 1.1. ...visible for all team members
                         $query->where('visibility', 1)
@@ -171,6 +178,7 @@ class CodingController extends Controller
             'projectId' => $projectId,
             'variables' => Variable::where('project_id', $projectId)->get(),
             'notes' => $notes,
+            'relations' => CodeRelation::where('project_id', $projectId)->get()->map->toClientArray()->values(),
         ]);
     }
 
@@ -240,6 +248,14 @@ class CodingController extends Controller
 
         if ($request->has('parent_id')) {
             $code->parent_id = $request->input('parent_id');
+        }
+
+        if ($request->has('kind')) {
+            $code->kind = $request->input('kind');
+        }
+
+        if ($request->has('meta')) {
+            $code->setAnalyticMeta($request->input('meta'), $project);
         }
 
         $code->save();

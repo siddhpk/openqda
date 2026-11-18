@@ -64,6 +64,43 @@ Routes.project = {
 };
 
 /**
+ * Research design: questions, approach in the researchers' own words,
+ * analytic vocabulary and analysis plan (no methodology profiles).
+ * @type {Route}
+ */
+Routes.design = {
+  key: 'design.show',
+  name: 'design',
+  label: 'Research design',
+  path: (projectId) => projectId && href(Routes.design, projectId),
+  active: (name) => name.startsWith('design'),
+};
+
+/**
+ * Concepts and propositions with their evidence.
+ * @type {Route}
+ */
+Routes.concepts = {
+  key: 'concepts.page',
+  name: 'concepts',
+  label: 'Concepts',
+  path: (projectId) => projectId && href(Routes.concepts, projectId),
+  active: (name) => name.startsWith('concepts'),
+};
+
+/**
+ * Cases and the case matrix.
+ * @type {Route}
+ */
+Routes.cases = {
+  key: 'cases.page',
+  name: 'cases',
+  label: 'Cases',
+  path: (projectId) => projectId && href(Routes.cases, projectId),
+  active: (name) => name.startsWith('cases'),
+};
+
+/**
  * Preparation page for a given project by project id.
  * In the associated page users prepare their actual coding.
  * @type {Route}
@@ -98,6 +135,18 @@ Routes.analysis = {
   label: 'Analysis',
   path: (projectId) => projectId && href(Routes.analysis, projectId),
   active: (name) => name.startsWith('analysis'),
+};
+
+/**
+ * FreeMind-style mind map of codes, relationships and memos.
+ * @type {Route}
+ */
+Routes.map = {
+  key: 'map.show',
+  name: 'map',
+  label: 'Mind Map',
+  path: (projectId) => projectId && href(Routes.map, projectId),
+  active: (name) => name.startsWith('map'),
 };
 
 /**

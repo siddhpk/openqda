@@ -16,6 +16,8 @@ import registerVisualizationPlugins from '@openqda/visualization';
 // THE BOTTOM OF THIS FILE!
 // --------------------------------------------------------------------------//
 // import registerMyPlugin from 'mycoolvisualization';
+// Analysis Toolkit module: mind map with focus view and relationship network
+import MindMap from '@openqda/visualization/src/mindmap';
 
 // --------------------------------------------------------------------------//
 // REGISTER DEFAULT PLUGINS
@@ -26,3 +28,4 @@ registerVisualizationPlugins(OpenQDAPlugins);
 // REGISTER CUSTOM PLUGINS
 // --------------------------------------------------------------------------//
 // registerMyPlugin(OpenQDAPlugins);
+OpenQDAPlugins.register(MindMap);

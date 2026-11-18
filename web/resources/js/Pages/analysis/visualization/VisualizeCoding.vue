@@ -10,6 +10,12 @@ import SideOverlay from '../../../Components/layout/SideOverlay.vue';
 import ActivityIndicator from '../../../Components/ActivityIndicator.vue';
 import NoteList from '../../coding/tree/NoteList.vue';
 import { Collapse } from 'vue-collapsed';
+import { usePage } from '@inertiajs/vue3';
+import {
+  codeTypes,
+  relationLabel,
+  relationType,
+} from '../../../domain/qda/vocabulary.js';
 const {
   sources,
   codes,
@@ -32,6 +38,12 @@ const { api } = createVisualizationAPI({
 // additional functionality attached
 api.getMemberBy = getMemberBy;
 api.setShowMenu = setShowMenu;
+// relationships between codes (mind map, focus view, network) and the
+// project's own vocabulary for naming them
+api.relations = usePage().props.relations ?? [];
+api.relationLabel = relationLabel;
+api.typeLabel = (type) => relationType(type).label;
+api.codeTypes = () => codeTypes();
 
 provide('api', api);
 provide('components', {

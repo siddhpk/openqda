@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Services\Qda\CodeMeta;
+use App\Services\Qda\Vocabulary;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use OwenIt\Auditing\Contracts\Auditable;
 
@@ -28,7 +31,27 @@ class Code extends Model implements Auditable
         'color',
         'description',
         'parent_id',
+        'kind',
+        'meta',
     ];
+
+    protected $casts = [
+        'meta' => 'array',
+    ];
+
+    protected static function booted(): void
+    {
+        // remove relationships through Eloquent so that their
+        // memos are removed as well (see CodeRelation::booted)
+        static::deleting(function (Code $code) {
+            CodeRelation::where('from_code_id', $code->id)
+                ->orWhere('to_code_id', $code->id)
+                ->get()
+                ->each
+                ->delete();
+            CaseAssessment::where('item_type', 'code')->where('item_id', $code->id)->delete();
+        });
+    }
 
     protected $primaryKey = 'id';
 
@@ -102,6 +125,39 @@ class Code extends Model implements Auditable
     }
 
     /**
+     * Concepts this code informs.
+     */
+    public function concepts(): BelongsToMany
+    {
+        return $this->belongsToMany(Concept::class, 'concept_code');
+    }
+
+    /**
+     * Relationships in which this code is the origin.
+     */
+    public function outgoingRelations(): HasMany
+    {
+        return $this->hasMany(CodeRelation::class, 'from_code_id');
+    }
+
+    /**
+     * Relationships in which this code is the target.
+     */
+    public function incomingRelations(): HasMany
+    {
+        return $this->hasMany(CodeRelation::class, 'to_code_id');
+    }
+
+    /**
+     * Sets the analytic fields (definition, properties, status, custom
+     * fields), normalized against the project's vocabulary.
+     */
+    public function setAnalyticMeta(mixed $meta, Project $project): void
+    {
+        $this->meta = CodeMeta::normalize($meta, Vocabulary::for($project));
+    }
+
+    /**
      * Get all the selected text inside this code for a specific source.
      */
     public function selectionsForSource($sourceId): HasMany
@@ -120,6 +176,8 @@ class Code extends Model implements Auditable
             'color' => $this->color,
             'codebook' => $this->codebook->id,
             'description' => $this->description ?? '',
+            'kind' => $this->kind ?? 'code',
+            'meta' => $this->meta ?: new \stdClass,
             'children' => [],
         ];
 

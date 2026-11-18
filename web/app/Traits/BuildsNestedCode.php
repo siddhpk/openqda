@@ -22,6 +22,8 @@ trait BuildsNestedCode
             'color' => $code->color,
             'codebook' => $code->codebook->id,
             'description' => $code->description ?? '',
+            'kind' => $code->kind ?? 'code',
+            'meta' => $code->meta ?: new \stdClass,
             'children' => [],
             'text' => $selections,
             'selectionsCount' => $selectionsCount,

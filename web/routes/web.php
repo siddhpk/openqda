@@ -153,6 +153,11 @@ Route::middleware([
     Route::post('/sources/{sourceId}/download', [SourceController::class, 'download'])->name('sources.download');
 
     /**
+     * Analysis Toolkit module
+     */
+    require __DIR__.'/analysis.php';
+
+    /**
      * Notes
      */
     Route::get('/projects/{project}/notes', [NoteController::class, 'index'])->name('notes.index');

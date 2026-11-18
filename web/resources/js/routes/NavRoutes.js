@@ -1,6 +1,10 @@
 import {
+  AcademicCapIcon,
   ChartPieIcon,
   DocumentTextIcon,
+  LightBulbIcon,
+  ShareIcon,
+  TableCellsIcon,
   Square3Stack3DIcon,
   SquaresPlusIcon,
 } from '@heroicons/vue/20/solid/index.js';
@@ -18,6 +22,10 @@ export const NavRoutes = [
     route: Routes.project,
   },
   {
+    icon: AcademicCapIcon,
+    route: Routes.design,
+  },
+  {
     icon: SquaresPlusIcon,
     route: Routes.preparation,
   },
@@ -28,6 +36,18 @@ export const NavRoutes = [
   {
     icon: ChartPieIcon,
     route: Routes.analysis,
+  },
+  {
+    icon: ShareIcon,
+    route: Routes.map,
+  },
+  {
+    icon: LightBulbIcon,
+    route: Routes.concepts,
+  },
+  {
+    icon: TableCellsIcon,
+    route: Routes.cases,
   },
   {
     icon: UserCircleIcon,
