@@ -113,6 +113,7 @@
                 :policy="d.policy"
                 @connect="collab.connect"
                 @disconnect="collab.disconnect"
+                @sign-out="collab.signOut"
                 @refresh="collab.refresh"
                 @settings="collab.saveSettings"
                 @tag="collab.tagThisComputer"

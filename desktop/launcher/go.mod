@@ -4,6 +4,8 @@ go 1.27.4
 
 require (
 	github.com/coder/websocket v1.8.15
+	github.com/jchv/go-webview2 v0.0.0-20260205173254-56598839c808
+	golang.org/x/sys v0.50.0
 	tailscale.com v1.106.0
 )
 
@@ -22,6 +24,7 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/hdevalence/ed25519consensus v0.2.0 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
+	github.com/jchv/go-winloader v0.0.0-20250406163304-c1995be93bd1 // indirect
 	github.com/jsimonetti/rtnetlink v1.4.2 // indirect
 	github.com/klauspost/compress v1.20.2 // indirect
 	github.com/mdlayher/netlink v1.11.2 // indirect
@@ -43,7 +46,6 @@ require (
 	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/oauth2 v0.37.0 // indirect
 	golang.org/x/sync v0.25.0 // indirect
-	golang.org/x/sys v0.50.0 // indirect
 	golang.org/x/term v0.48.0 // indirect
 	golang.org/x/text v0.44.0 // indirect
 	golang.org/x/time v0.16.0 // indirect

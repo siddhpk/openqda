@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render } from '@testing-library/vue';
+import { fireEvent, render } from '@testing-library/vue';
 
 const requests = [];
 let status = null;
@@ -11,6 +11,7 @@ vi.mock('../utils/http/BackendRequest.js', () => ({
 }));
 
 import CollaborationPage from './CollaborationPage.vue';
+import TailscaleCard from './collab/TailscaleCard.vue';
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 // like AuthenticatedLayout: the page sits in a <Transition>, which shows
@@ -69,5 +70,22 @@ describe('CollaborationPage', () => {
     expect(
       baseElement.querySelector('[data-test="wizard-invite-input"]')
     ).toBeTruthy();
+  });
+
+  it('distinguishes disconnect from signing out of a saved device', async () => {
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true)
+    );
+    const { getByText, emitted } = render(TailscaleCard, {
+      props: { ts: { state: 'Running', configured: true }, agent: true },
+    });
+
+    await fireEvent.click(getByText('Disconnect'));
+    expect(emitted().disconnect).toHaveLength(1);
+    expect(emitted()['sign-out']).toBeUndefined();
+
+    await fireEvent.click(getByText('Sign out and forget this device'));
+    expect(emitted()['sign-out']).toHaveLength(1);
   });
 });

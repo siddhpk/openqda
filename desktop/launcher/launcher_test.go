@@ -2,8 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"io"
+	"net"
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -163,6 +169,116 @@ func TestStateFileHandling(t *testing.T) {
 	sharing := raw["sharing"].(map[string]any)
 	if sharing["mode"] != "off" || sharing["code"] != nil || raw["autostart"] != true {
 		t.Fatalf("unexpected state after stop: %v", raw)
+	}
+}
+
+func TestShutdownRequestDuringStartup(t *testing.T) {
+	started := time.Date(2026, 1, 1, 12, 0, 0, 500000000, time.UTC)
+	request := AppState{Shutdown: "2026-01-01T12:00:00Z"}
+	if !request.isNewShutdownRequest(started, "") {
+		t.Fatal("shutdown request made in the startup second was ignored")
+	}
+	if request.isNewShutdownRequest(started, request.Shutdown) {
+		t.Fatal("previous shutdown request was treated as new")
+	}
+	request.Shutdown = "2026-01-01T11:59:59Z"
+	if request.isNewShutdownRequest(started, "") {
+		t.Fatal("old shutdown request was treated as new")
+	}
+}
+
+func TestShutdownRejectsInvalidState(t *testing.T) {
+	path := writeTemp(t, `{"sharing":`)
+	if err := RequestShutdown(path); err == nil {
+		t.Fatal("expected invalid state to be reported")
+	}
+	data, err := os.ReadFile(path)
+	if err != nil || string(data) != `{"sharing":` {
+		t.Fatalf("invalid state was changed: %q, %v", data, err)
+	}
+}
+
+func TestLauncherShutdownHelper(t *testing.T) {
+	if os.Getenv("OPENQDA_TEST_SHUTDOWN_HELPER") != "1" {
+		return
+	}
+	_, _ = io.Copy(io.Discard, os.Stdin)
+}
+
+func TestShutdownStopsServerAndSharing(t *testing.T) {
+	for _, viaTray := range []bool{true, false} {
+		name := "state request"
+		if viaTray {
+			name = "tray exit"
+		}
+		t.Run(name, func(t *testing.T) { testShutdownStopsServerAndSharing(t, viaTray) })
+	}
+}
+
+func testShutdownStopsServerAndSharing(t *testing.T, viaTray bool) {
+	t.Helper()
+	cmd := exec.Command(os.Args[0], "-test.run=^TestLauncherShutdownHelper$")
+	cmd.Env = append(os.Environ(), "OPENQDA_TEST_SHUTDOWN_HELPER=1")
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
+	t.Cleanup(func() {
+		_ = stdin.Close()
+		if cmd.ProcessState == nil {
+			_ = cmd.Process.Kill()
+		}
+	})
+	admin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/stop" {
+			http.Error(w, "unexpected request", http.StatusBadRequest)
+			return
+		}
+		_ = stdin.Close()
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer admin.Close()
+	_, portText, err := net.SplitHostPort(admin.Listener.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	port, err := strconv.Atoi(portText)
+	if err != nil {
+		t.Fatal(err)
+	}
+	started := time.Now()
+	state := `{"sharing":{"mode":"lan"},"autostart":false}`
+	if !viaTray {
+		state = `{"sharing":{"mode":"lan"},"autostart":false,"shutdown":"` + started.UTC().Format(time.RFC3339) + `"}`
+	}
+	path := writeTemp(t, state)
+	server := &Server{cmd: cmd, done: done, Config: Config{AdminPort: port}}
+	exit := make(chan struct{}, 1)
+	if viaTray {
+		exit <- struct{}{}
+	}
+	result := make(chan error, 1)
+	go func() {
+		result <- supervise(server, Layout{}, "", path, false, started, "", exit, t.Logf)
+	}()
+	select {
+	case err := <-result:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(15 * time.Second):
+		t.Fatal("shutdown did not finish")
+	}
+	if cmd.ProcessState == nil || !cmd.ProcessState.Exited() {
+		t.Fatal("server process is still running")
+	}
+	if state := ReadAppState(path); state.Sharing.Mode != "off" {
+		t.Fatalf("sharing not stopped: %+v", state)
 	}
 }
 

@@ -29,6 +29,7 @@ func (c *Control) Handler() http.Handler {
 	mux.HandleFunc("GET /v1/status", c.status)
 	mux.HandleFunc("POST /v1/tailscale/connect", c.connect)
 	mux.HandleFunc("POST /v1/tailscale/authkey", c.authKey)
+	mux.HandleFunc("POST /v1/tailscale/pause", c.pause)
 	mux.HandleFunc("POST /v1/tailscale/logout", c.logout)
 	mux.HandleFunc("POST /v1/tailscale/tags", c.tags)
 	mux.HandleFunc("POST /v1/ops", c.ops)
@@ -126,6 +127,23 @@ func (c *Control) authKey(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, st)
 }
 
+// pause disconnects without signing out, so the saved device can reconnect.
+func (c *Control) pause(w http.ResponseWriter, r *http.Request) {
+	if c.Tailnet == nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "Tailscale is not available in this build"})
+		return
+	}
+	c.Agent.SetNetwork(nil)
+	err := c.Tailnet.Pause()
+	st := c.Tailnet.Status(r.Context())
+	if err != nil {
+		st.Error = err.Error()
+		writeJSON(w, http.StatusBadGateway, st)
+		return
+	}
+	writeJSON(w, http.StatusOK, st)
+}
+
 func (c *Control) logout(w http.ResponseWriter, r *http.Request) {
 	if c.Tailnet == nil {
 		writeJSON(w, http.StatusOK, TailnetStatus{State: "Unavailable"})
@@ -137,7 +155,12 @@ func (c *Control) logout(w http.ResponseWriter, r *http.Request) {
 	err := c.Tailnet.Logout(ctx)
 	st := c.Tailnet.Status(ctx)
 	if err != nil {
+		if st.Started {
+			c.Agent.SetNetwork(c.Tailnet)
+		}
 		st.Error = err.Error()
+		writeJSON(w, http.StatusBadGateway, st)
+		return
 	}
 	writeJSON(w, http.StatusOK, st)
 }

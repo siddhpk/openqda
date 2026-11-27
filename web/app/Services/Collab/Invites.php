@@ -166,7 +166,7 @@ final class Invites
                     'message' => 'Connect OpenQDA to your own Tailscale account first (above), then join again.'];
             }
             if (! empty($ts['tags'])) {
-                return ['status' => 'needs_signin', 'message' => 'Only a person can accept a shared computer: disconnect, connect again with your own Tailscale account, then join.'];
+                return ['status' => 'needs_signin', 'message' => 'Only a person can accept a shared computer: sign out, connect again with your own Tailscale account, then join.'];
             }
             self::storeJoin($userId, $p);
 

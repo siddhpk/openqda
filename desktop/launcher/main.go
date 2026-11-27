@@ -1,8 +1,7 @@
 // Command OpenQDA is the launcher of the OpenQDA laptop edition.
 //
-// Double-click: start OpenQDA in the background (first start sets up the
-// database) and open it in the default browser. Starting it again while it
-// runs only opens the browser.
+// Double-click: start OpenQDA and open its window on Windows, or the default
+// browser on other platforms. Starting it again opens the existing session.
 //
 //	OpenQDA --background   start without opening the browser (autostart)
 //	OpenQDA --stop         shut a running OpenQDA down
@@ -29,6 +28,7 @@ var version = "dev"
 func main() {
 	background := flag.Bool("background", false, "start without opening the browser")
 	stop := flag.Bool("stop", false, "shut down a running OpenQDA")
+	window := flag.Bool("window", false, "open the desktop window for a running OpenQDA")
 	dataDir := flag.String("data", "", "data folder")
 	showVersion := flag.Bool("version", false, "print the version")
 	flag.Parse()
@@ -37,8 +37,20 @@ func main() {
 		fmt.Println("OpenQDA launcher", version)
 		return
 	}
+	if *window {
+		if err := runAppWindow(*dataDir); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 	if err := run(*background, *stop, *dataDir); err != nil {
-		ShowError(err.Error())
+		if *stop {
+			fmt.Fprintln(os.Stderr, "OpenQDA:", err)
+			showMessage("OpenQDA could not stop.\n\n" + err.Error())
+		} else {
+			ShowError(err.Error())
+		}
 		os.Exit(1)
 	}
 }
@@ -70,14 +82,16 @@ func run(background, stop bool, dataDir string) error {
 		return RequestShutdown(statePath)
 	}
 
+	started := time.Now()
+	initialShutdown := ReadAppState(statePath).Shutdown
 	cfg, created, err := LoadOrCreateConfig(layout.DataFile("config.json"))
 	if err != nil {
 		return err
 	}
 	if AlreadyRunning(cfg) {
-		logf("already running, opening the browser")
+		logf("already running, opening OpenQDA")
 		if !background {
-			return OpenBrowser(fmt.Sprintf("http://127.0.0.1:%d", cfg.LocalPort))
+			return startAppWindow(exe, layout, fmt.Sprintf("http://127.0.0.1:%d", cfg.LocalPort), true, nil)
 		}
 		return nil
 	}
@@ -124,24 +138,71 @@ func run(background, stop bool, dataDir string) error {
 	}
 	logf("listening on %s", server.LocalURL())
 	collab.start()
+
+	trayExit := make(chan struct{}, 1)
+	requestExit := func() {
+		select {
+		case trayExit <- struct{}{}:
+		default:
+		}
+	}
+	trayWarning := func(err error) {
+		logf("warning: system tray: %v", err)
+		go showMessage("The OpenQDA system tray icon is unavailable. Use Stop OpenQDA in the Start menu or the Sharing page to exit.\n\n" + err.Error())
+	}
+	closeTray, err := startTray(layout.Root, func() {
+		if err := startAppWindow(exe, layout, server.LocalURL(), false, func(err error) {
+			logf("warning: could not open the window: %v", err)
+			showMessage("OpenQDA could not open its window.\n\n" + err.Error())
+		}); err != nil {
+			logf("warning: could not open the window: %v", err)
+			showMessage("OpenQDA could not open its window.\n\n" + err.Error())
+		}
+	}, requestExit, trayWarning)
+	if err != nil {
+		trayWarning(err)
+	}
+	defer closeTray()
 	if !background {
-		if err := OpenBrowser(server.LocalURL()); err != nil {
-			logf("warning: could not open the browser: %v", err)
+		if err := startAppWindow(exe, layout, server.LocalURL(), false, func(err error) {
+			logf("could not open the window: %v", err)
+			showMessage("OpenQDA could not open its window.\n\n" + err.Error())
+			requestExit()
+		}); err != nil {
+			logf("could not open the window: %v", err)
+			showMessage("OpenQDA could not open its window.\n\n" + err.Error())
+			requestExit()
 		}
 	}
 
-	err = supervise(server, layout, exe, statePath, autostart, logf)
+	err = supervise(server, layout, exe, statePath, autostart, started, initialShutdown, trayExit, logf)
+	if err := closeAppWindow(layout.Data); err != nil {
+		logf("warning: could not close the window: %v", err)
+	}
 	collab.stop()
 	return err
 }
 
-func supervise(server *Server, layout Layout, exe, statePath string, autostart bool, logf func(string, ...any)) error {
-	started := time.Now()
+func supervise(server *Server, layout Layout, exe, statePath string, autostart bool, started time.Time, initialShutdown string, trayExit <-chan struct{}, logf func(string, ...any)) error {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	defer signal.Stop(signals)
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 	var crashes []time.Time
+
+	shutdown := func(state AppState) {
+		logf("shutdown requested")
+		if state.Sharing.Mode == "internet" {
+			if err := stopFunnel(); err != nil {
+				logf("warning: %v", err)
+			}
+		}
+		if err := StopSharingInState(statePath, "shutdown"); err != nil {
+			logf("warning: could not update sharing state: %v", err)
+		}
+		server.Stop()
+	}
 
 	for {
 		select {
@@ -149,6 +210,10 @@ func supervise(server *Server, layout Layout, exe, statePath string, autostart b
 			// computer shutting down or Ctrl+C: leave the sharing settings as they are
 			logf("received %v, stopping", sig)
 			server.Stop()
+			return nil
+
+		case <-trayExit:
+			shutdown(ReadAppState(statePath))
 			return nil
 
 		case err := <-server.Exited():
@@ -163,13 +228,8 @@ func supervise(server *Server, layout Layout, exe, statePath string, autostart b
 
 		case <-ticker.C:
 			state := ReadAppState(statePath)
-			if state.ShutdownRequestedAfter(started) {
-				logf("shutdown requested")
-				if state.Sharing.Mode == "internet" {
-					StopFunnel()
-				}
-				_ = StopSharingInState(statePath, "shutdown")
-				server.Stop()
+			if state.isNewShutdownRequest(started, initialShutdown) {
+				shutdown(state)
 				return nil
 			}
 			if wantLAN := state.Sharing.Mode == "lan"; wantLAN != server.LAN() {
@@ -195,10 +255,19 @@ func supervise(server *Server, layout Layout, exe, statePath string, autostart b
 // RequestShutdown asks a running launcher to stop (it checks every 2 s).
 func RequestShutdown(path string) error {
 	data := map[string]any{}
-	if raw, err := os.ReadFile(path); err == nil {
-		_ = json.Unmarshal(raw, &data)
+	raw, err := os.ReadFile(path)
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("read shutdown state: %w", err)
 	}
-	data["shutdown"] = time.Now().UTC().Format(time.RFC3339)
+	if err == nil {
+		if err := json.Unmarshal(raw, &data); err != nil {
+			return fmt.Errorf("read shutdown state: %w", err)
+		}
+		if data == nil {
+			return fmt.Errorf("read shutdown state: expected a JSON object")
+		}
+	}
+	data["shutdown"] = time.Now().UTC().Format(time.RFC3339Nano)
 	out, err := json.MarshalIndent(data, "", "    ")
 	if err != nil {
 		return err
@@ -209,7 +278,10 @@ func RequestShutdown(path string) error {
 // ShowError tells the user what went wrong; there is no console window.
 func ShowError(msg string) {
 	fmt.Fprintln(os.Stderr, "OpenQDA:", msg)
-	text := "OpenQDA could not start.\n\n" + msg
+	showMessage("OpenQDA could not start.\n\n" + msg)
+}
+
+func showMessage(text string) {
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "windows":

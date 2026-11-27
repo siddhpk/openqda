@@ -412,8 +412,10 @@ def check_prerequisites(target: str, frontend: bool, package: bool, git_label: b
         files += [WEB / "package.json", WEB / "package-lock.json"]
     if target.startswith("linux"):
         files += [DESKTOP / "assets" / "openqda.png"]
+    if target.startswith("windows"):
+        files += [DESKTOP / "assets" / "openqda.ico"]
     if package and target.startswith("windows"):
-        files += [DESKTOP / "installer" / "openqda.nsi", DESKTOP / "assets" / "openqda.ico"]
+        files += [DESKTOP / "installer" / "openqda.nsi"]
     if package and target.startswith("macos"):
         files += [DESKTOP / "installer" / "Info.plist", DESKTOP / "assets" / "openqda.icns"]
     absent = [f for f in files if not f.is_file()]
@@ -469,6 +471,8 @@ def main() -> None:
     build_launcher(target, launcher, version)
     if target.startswith("linux"):
         shutil.copy2(DESKTOP / "assets" / "openqda.png", root / "openqda.png")
+    elif target.startswith("windows"):
+        shutil.copy2(DESKTOP / "assets" / "openqda.ico", root / "openqda.ico")
 
     if args.no_package:
         log(f"staged in {top}")

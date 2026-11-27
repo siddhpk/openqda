@@ -85,6 +85,17 @@
       </div>
     </template>
 
+    <div v-if="agent && (ts.started || running)" class="pt-2 border-t">
+      <Button
+        variant="ghost"
+        size="sm"
+        :disabled="busy"
+        data-test="sign-out"
+        @click="confirmSignOut"
+        >Sign out and forget this device</Button
+      >
+    </div>
+
     <details v-if="running" class="pt-2 border-t" data-test="one-click">
       <summary class="cursor-pointer font-medium">
         Advanced: one shared team network {{ oauth ? '(set up)' : '' }}
@@ -188,6 +199,7 @@ const props = defineProps({
 const emit = defineEmits([
   'connect',
   'disconnect',
+  'sign-out',
   'refresh',
   'settings',
   'tag',
@@ -232,6 +244,16 @@ const confirmDisconnect = () => {
     )
   ) {
     emit('disconnect');
+  }
+};
+
+const confirmSignOut = () => {
+  if (
+    window.confirm(
+      'Sign out and forget this Tailscale device? Reconnecting may create a new device. Your projects are kept.'
+    )
+  ) {
+    emit('sign-out');
   }
 };
 </script>

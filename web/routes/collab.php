@@ -20,6 +20,7 @@ Route::middleware(['auth', 'desktop.host'])->prefix('desktop/collab')->controlle
     Route::get('/status', 'status')->name('desktop.collab.status');
     Route::post('/tailscale/connect', 'connect')->name('desktop.collab.connect');
     Route::post('/tailscale/disconnect', 'disconnect')->name('desktop.collab.disconnect');
+    Route::post('/tailscale/sign-out', 'signOut')->name('desktop.collab.sign-out');
     Route::post('/tailscale/tag', 'tag')->name('desktop.collab.tag');
     Route::post('/settings', 'settings')->name('desktop.collab.settings');
     Route::post('/join', 'join')->name('desktop.collab.join');

@@ -43,7 +43,16 @@ export const useCollab = (initial = null) => {
     return data;
   };
 
-  const disconnect = () => call(route('desktop.collab.disconnect'));
+  const disconnect = async () => {
+    const data = await call(route('desktop.collab.disconnect'));
+    if (data) state.authUrl = null;
+    return data;
+  };
+  const signOut = async () => {
+    const data = await call(route('desktop.collab.sign-out'));
+    if (data) state.authUrl = null;
+    return data;
+  };
   const tagThisComputer = () => call(route('desktop.collab.tag'));
   const saveSettings = (settings) =>
     call(route('desktop.collab.settings'), 'post', settings);
@@ -114,6 +123,7 @@ export const useCollab = (initial = null) => {
     refresh,
     connect,
     disconnect,
+    signOut,
     tagThisComputer,
     saveSettings,
     sync,

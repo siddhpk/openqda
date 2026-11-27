@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 )
 
 // OpenBrowser opens url in the default browser.
@@ -107,9 +109,21 @@ func tailscaleCLI() string {
 
 // StopFunnel turns the internet link off when OpenQDA quits while sharing.
 func StopFunnel() {
-	if cli := tailscaleCLI(); cli != "" {
-		cmd := exec.Command(cli, "funnel", "--https=443", "off")
-		hideWindow(cmd)
-		_ = cmd.Run()
+	if err := stopFunnel(); err != nil {
+		fmt.Fprintln(os.Stderr, "OpenQDA:", err)
 	}
+}
+
+func stopFunnel() error {
+	if cli := tailscaleCLI(); cli != "" {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, cli, "funnel", "--https=443", "off")
+		hideWindow(cmd)
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("stop Tailscale Funnel: %w", err)
+		}
+		return nil
+	}
+	return fmt.Errorf("stop Tailscale Funnel: Tailscale executable not found")
 }

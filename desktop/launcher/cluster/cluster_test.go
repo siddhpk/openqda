@@ -12,6 +12,8 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -21,6 +23,34 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 )
+
+func TestControlPausePreservesTailnetIdentity(t *testing.T) {
+	dir := t.TempDir()
+	state := filepath.Join(dir, "tailscaled.state")
+	original := []byte("saved identity")
+	if err := os.WriteFile(state, original, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	control := &Control{Agent: NewAgent(Options{}), Tailnet: &Tailnet{Dir: dir}, Token: "test-token"}
+	req := httptest.NewRequest(http.MethodPost, "/v1/tailscale/pause", nil)
+	req.Header.Set("Authorization", "Bearer test-token")
+	rec := httptest.NewRecorder()
+	control.Handler().ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("pause: status %d, body %s", rec.Code, rec.Body.String())
+	}
+	got, err := os.ReadFile(state)
+	if err != nil || !bytes.Equal(got, original) {
+		t.Fatalf("saved identity changed: %q, %v", got, err)
+	}
+	var status TailnetStatus
+	if err := json.Unmarshal(rec.Body.Bytes(), &status); err != nil {
+		t.Fatal(err)
+	}
+	if !status.Configured || status.Started || status.State != "Stopped" {
+		t.Fatalf("unexpected paused status: %+v", status)
+	}
+}
 
 // ---- fakes ---------------------------------------------------------------
 

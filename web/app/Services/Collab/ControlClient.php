@@ -67,6 +67,11 @@ final class ControlClient
         return self::post('/v1/tailscale/logout', [], 25);
     }
 
+    public static function pause(): array
+    {
+        return self::post('/v1/tailscale/pause', [], 25);
+    }
+
     public static function tags(array $tags): array
     {
         return self::post('/v1/tailscale/tags', ['tags' => $tags], 35);

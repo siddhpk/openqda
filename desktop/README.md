@@ -1,6 +1,7 @@
 # OpenQDA laptop edition
 
-OpenQDA as a normal program for Windows and macOS: install it, double-click it, and it opens in your browser.
+OpenQDA as a normal program: install it and double-click it. On Windows it opens in an OpenQDA window; on macOS
+and Linux it opens in your browser.
 There is no Docker, no WSL and no database server. Colleagues can join from anywhere through a link plus an
 access code, much like a remote-support tool, while your computer is on.
 
@@ -23,12 +24,19 @@ Intel Macs are not supported, because FrankenPHP publishes no Intel build. Use t
 blocked: open *System Settings → Privacy & Security* and click **Open Anyway** next to the OpenQDA message, then
 start it again.
 
-**First start** takes a few seconds while the database is created; then your browser opens
+**First start** takes a few seconds while the database is created; then the window or browser opens
 `http://127.0.0.1:8765`. Register the first account. Confirmation e-mails are not needed in the laptop edition.
-Starting OpenQDA again while it runs only opens the browser.
+Starting OpenQDA again while it runs opens the existing window on Windows or the browser on macOS and Linux.
 
-**Stopping.** *Sharing & autocoding* page (globe icon) → **Shut down OpenQDA**. On Windows you can also use *Stop OpenQDA* in the
-Start menu.
+**Stopping.** Closing the Windows window stops OpenQDA. You can also right-click the OpenQDA icon in the
+notification area (it may be under the `^` arrow) and select **Exit OpenQDA**, use *Stop OpenQDA* in the Start
+menu, or use the *Sharing & autocoding* page (globe icon) → **Shut down OpenQDA**. On macOS and Linux, closing
+the browser tab leaves OpenQDA running; use **Shut down OpenQDA** or `OpenQDA --stop` to stop it. Exiting
+disconnects collaborators and stops the local server. Background autostart does not open a window or browser tab.
+
+The Windows window requires the Microsoft Edge WebView2 Runtime and keeps a separate browser profile in the
+OpenQDA data folder. Sessions from your regular browser are not shared. If WebView2 is missing, install the
+runtime from Microsoft.
 
 ## Your data
 
@@ -92,6 +100,10 @@ into OpenQDA: nothing is reachable from the internet, and only OpenQDA (not the 
 
 If everyone keeps separate Tailscale accounts, nobody administers anyone else's account. Teams that prefer one
 network you administer can set up one-click invitations under **Connection and settings**.
+
+Under **Connection and settings**, **Disconnect** pauses collaboration and keeps this device's Tailscale
+identity. **Connect to Tailscale** resumes it; restarting OpenQDA also reconnects automatically. While connected,
+use **Sign out and forget this device** only when you want to leave the current Tailscale account or network.
 
 **Roles:** a Primary's changes merge directly. An Assistant's additions, and changes to their own items, merge
 directly too. Changes to or deletions of someone else's work wait in the Primaries' **Review** list.
@@ -167,7 +179,7 @@ the laptop edition (`OPENQDA_DESKTOP` unset) none of this is active.
 ## Known limitations
 
 - The installers are not code-signed or notarized, so users see the warnings described above.
-- There is no tray icon. OpenQDA runs in the background; stop it from the Sharing page or the Start menu.
+- On macOS and Linux there is no tray icon. Stop OpenQDA from the Sharing page.
 - The Reverb WebSocket server is not part of the laptop edition. Live updates between laptops come from the
   collaboration agent instead; people sharing one computer through a link see others' changes after a reload.
 - A computer belongs to one Tailscale network at a time; joining a project in another network moves OpenQDA

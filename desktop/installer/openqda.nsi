@@ -123,6 +123,7 @@ Section "Uninstall"
     RMDir /r "$INSTDIR\app"
     RMDir /r "$INSTDIR\runtime"
   Delete "$INSTDIR\OpenQDA.exe"
+  Delete "$INSTDIR\openqda.ico"
   Delete "$INSTDIR\Uninstall.exe"
   RMDir "$INSTDIR"
   ; user data in %LOCALAPPDATA%\OpenQDA is kept on purpose

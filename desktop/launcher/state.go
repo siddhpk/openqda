@@ -36,6 +36,10 @@ func (s AppState) ShutdownRequestedAfter(t time.Time) bool {
 	return err == nil && at.After(t)
 }
 
+func (s AppState) isNewShutdownRequest(started time.Time, initial string) bool {
+	return s.Shutdown != initial && s.ShutdownRequestedAfter(started.Truncate(time.Second).Add(-time.Nanosecond))
+}
+
 // StopSharingInState switches sharing off in state.json (used when the
 // launcher quits) while keeping every other key the app wrote.
 func StopSharingInState(path, reason string) error {

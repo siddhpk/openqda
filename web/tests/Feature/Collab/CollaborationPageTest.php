@@ -8,7 +8,9 @@ use App\Services\Collab\Collab;
 use App\Services\Collab\IdMap;
 use App\Services\Collab\Roster;
 use App\Services\Collab\Seeder;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 /**
  * The Collaboration page as the person at the computer uses it.
@@ -19,6 +21,30 @@ class CollaborationPageTest extends CollabTestCase
     {
         parent::setUp();
         $this->addNode('alice', '100.64.0.1');
+    }
+
+    public function test_disconnect_pauses_the_device_and_sign_out_is_explicit(): void
+    {
+        $project = $this->makeProject();
+        $this->host(User::find($project->creating_user_id));
+
+        $this->postJson('/desktop/collab/tailscale/disconnect')->assertOk();
+        Http::assertSent(fn (Request $request) => str_ends_with($request->url(), '/v1/tailscale/pause'));
+        Http::assertNotSent(fn (Request $request) => str_ends_with($request->url(), '/v1/tailscale/logout'));
+
+        $this->postJson('/desktop/collab/tailscale/sign-out')->assertOk();
+        Http::assertSent(fn (Request $request) => str_ends_with($request->url(), '/v1/tailscale/logout'));
+    }
+
+    public function test_disconnect_reports_an_unavailable_collaboration_service(): void
+    {
+        $project = $this->makeProject();
+        $this->host(User::find($project->creating_user_id));
+        config(['collab.control_url' => '']);
+
+        $this->postJson('/desktop/collab/tailscale/disconnect')
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'The collaboration service is not running.');
     }
 
     public function test_pressing_collaborate_makes_this_computer_the_primary_with_invitations(): void

@@ -139,7 +139,20 @@ class CollabController extends Controller
 
     public function disconnect(Request $request): JsonResponse
     {
-        ControlClient::logout();
+        $r = ControlClient::pause();
+        if (! $r['ok']) {
+            return response()->json(['message' => $r['error'] ?? 'Tailscale could not disconnect.'] + $this->payload($request), 422);
+        }
+
+        return response()->json($this->payload($request));
+    }
+
+    public function signOut(Request $request): JsonResponse
+    {
+        $r = ControlClient::logout();
+        if (! $r['ok']) {
+            return response()->json(['message' => $r['error'] ?? 'Tailscale could not sign out.'] + $this->payload($request), 422);
+        }
 
         return response()->json($this->payload($request));
     }

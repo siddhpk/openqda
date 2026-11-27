@@ -67,6 +67,11 @@ and press **Join**. With a key, OpenQDA joins the team network by itself. If the
 Tailscale network, OpenQDA asks before it moves. The project appears as soon as the inviting laptop is online.
 A later invitation to someone already in the network needs no key.
 
+Under **Connection and settings**, **Disconnect** pauses the embedded node without signing it out; **Connect to
+Tailscale** resumes the saved identity, and OpenQDA also reconnects on restart. While the node is started,
+**Sign out and forget this device** removes the saved identity and is intended for leaving or switching networks.
+Reconnecting after signing out may create a new Tailscale device.
+
 ## Roles
 
 - **Primary** (several are allowed): their changes merge silently and win over concurrent changes of

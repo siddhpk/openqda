@@ -188,17 +188,19 @@ func (t *Tailnet) UseAuthKey(ctx context.Context, key string, replace bool) (Tai
 func (t *Tailnet) Logout(ctx context.Context) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	var err error
 	if t.srv != nil {
-		if lc, lerr := t.srv.LocalClient(); lerr == nil {
-			err = lc.Logout(ctx)
+		lc, err := t.srv.LocalClient()
+		if err != nil {
+			return err
+		}
+		if err := lc.Logout(ctx); err != nil {
+			return err
 		}
 	}
-	t.closeLocked()
-	if rerr := os.RemoveAll(t.Dir); rerr != nil && err == nil {
-		err = rerr
+	if err := t.closeLocked(); err != nil {
+		return err
 	}
-	return err
+	return os.RemoveAll(t.Dir)
 }
 
 // SetTags asks Tailscale to tag this node (allowed once the network's
@@ -224,11 +226,20 @@ func (t *Tailnet) Close() {
 	t.closeLocked()
 }
 
-func (t *Tailnet) closeLocked() {
+// Pause stops networking without signing out or removing the saved identity.
+func (t *Tailnet) Pause() error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.closeLocked()
+}
+
+func (t *Tailnet) closeLocked() error {
 	if t.srv != nil {
-		_ = t.srv.Close()
+		err := t.srv.Close()
 		t.srv = nil
+		return err
 	}
+	return nil
 }
 
 func (t *Tailnet) running() (*tsnet.Server, error) {
