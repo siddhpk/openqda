@@ -240,7 +240,10 @@ def stage_app(dest: Path) -> None:
 
 def build_launcher(target: str, out: Path, version: str) -> None:
     goos, goarch = GO_TARGET[target]
-    flags = f"-s -w -X main.version={version}"
+    if "'" in version and '"' in version:
+        raise ValueError("version cannot contain both single and double quotes")
+    quote = '"' if "'" in version else "'"
+    flags = f"-s -w -X {quote}main.version={version}{quote}"
     if goos == "windows":
         flags += " -H=windowsgui"
     go = find_tool("go")
