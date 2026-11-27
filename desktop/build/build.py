@@ -80,12 +80,12 @@ INSTALL_HINTS = {
 }
 
 FRANKENPHP_VERSION = "1.13.5"  # PHP 8.5, Caddy 2.11
-# SHA-256 of the release assets as re-uploaded upstream on 2026-11-17/18
+# SHA-256 of the release assets as re-uploaded upstream on 2026-11-19
 # (matches the digests GitHub publishes for the v1.13.5 release assets).
 RUNTIME = {
-    "windows-x86_64": ("frankenphp-windows-x86_64.zip", "c2e65d8fa82335cc5a67f1c634cc3c4f31f6322d0741209acbf052b40220af6e"),
-    "macos-arm64": ("frankenphp-mac-arm64", "22618dc9d33d064b95c457daf97ec9fadc53d898548dc58ae1adf80854cb4829"),
-    "linux-x86_64": ("frankenphp-linux-x86_64", "ec34db1c536056279725d560a7302d9d48dd1763ec38883778cce737781655b7"),
+    "windows-x86_64": ("frankenphp-windows-x86_64.zip", "80ec80de9722e44341c476fe53bc8fad744866fa027f9a4c19bd4c0c554e3631"),
+    "macos-arm64": ("frankenphp-mac-arm64", "2de72f9e9c5ad6bac2057a4fa74ad6fa7f5f260d5528b75b9f2f24569aa9c982"),
+    "linux-x86_64": ("frankenphp-linux-x86_64", "1eac8bbaca19c6ffd751baba70a2390eaa826484a57db9cc46439662b68ea952"),
 }
 # Microsoft Visual C++ runtime for the Windows PHP build (needs 14.44 or newer).
 # Shipped next to php.exe/frankenphp.exe (app-local deployment of the
