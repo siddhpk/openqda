@@ -41,6 +41,9 @@ return [
             'database' => env('DB_DATABASE', database_path('database.sqlite')),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
+            // laptop edition: wait for a busy database instead of failing (the
+            // collaboration agent writes alongside the browser)
+            'options' => env('OPENQDA_DESKTOP') ? [PDO::ATTR_TIMEOUT => 15] : [],
         ],
 
         'mysql' => [

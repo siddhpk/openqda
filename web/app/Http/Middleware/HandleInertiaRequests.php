@@ -5,6 +5,10 @@ namespace App\Http\Middleware;
 use App\Models\Project;
 use App\Models\UserGlobalPreference;
 use App\Models\UserProjectPreference;
+use App\Services\Collab\Collab;
+use App\Services\Collab\Merge\ReviewPolicy;
+use App\Services\Collab\Reviews;
+use App\Services\Collab\Roster;
 use App\Services\Desktop\Channel;
 use App\Services\ProjectTeamResolverService;
 use App\Services\Qda\Vocabulary;
@@ -85,6 +89,12 @@ class HandleInertiaRequests extends Middleware
             'desktop' => [
                 'enabled' => Channel::desktop(),
                 'host' => Channel::isHost($request),
+                // laptop collaboration: the Collaboration page and its review count
+                'collab' => fn () => Channel::isHost($request) && Collab::enabled() ? [
+                    'reviews' => collect(Collab::activeProjects())
+                        ->filter(fn ($p) => Roster::myRole($p->gid) === ReviewPolicy::PRIMARY)
+                        ->sum(fn ($p) => Reviews::count($p->gid)),
+                ] : null,
             ],
             'projectId' => session('projectId'),
             'sharedTeam' => $team?->only('id', 'name'),

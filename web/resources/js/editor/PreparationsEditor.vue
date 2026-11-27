@@ -61,6 +61,8 @@ import { cn } from '../utils/css/cn.js';
 import ActivityIndicator from '../Components/ActivityIndicator.vue';
 import { createHash } from '../utils/createHash.js';
 import { SelectionHighlightBG } from '../Pages/coding/editor/SelectionHighlightBG.js';
+import { QuillBinding } from 'y-quill';
+import { useCoEdit } from '../domain/collab/useCoEdit.js';
 
 const props = defineProps({
   source: String,
@@ -68,7 +70,34 @@ const props = defineProps({
   canUnlock: Boolean,
   viewerZoom: { type: Number, default: 1.0 },
   useViewZoom: { type: Boolean, default: true },
+  // laptop collaboration: "sources:<id>:html" to co-edit the text live
+  coEditKey: { type: String, default: null },
 });
+
+// laptop collaboration: the text is a shared document while co-editing;
+// only the save leader saves it
+const coEdit = useCoEdit();
+let binding = null;
+const stopCoEdit = () => {
+  if (binding) binding.destroy();
+  binding = null;
+  coEdit.stop();
+};
+const startCoEdit = async () => {
+  stopCoEdit();
+  if (!props.coEditKey || props.locked || !quillInstance) return;
+  const key = props.coEditKey;
+  const live = await coEdit.start(key, (ytext) =>
+    ytext.applyDelta(quillInstance.getContents().ops)
+  );
+  if (!live || key !== props.coEditKey || !quillInstance) return;
+  binding = new QuillBinding(
+    coEdit.text(),
+    quillInstance,
+    coEdit.awareness.value
+  );
+  quillInstance.enable(coEdit.canEdit.value && !props.locked);
+};
 
 const loadingDocument = ref(false);
 const emit = defineEmits(['status', 'autosave', 'settings', 'update:zoom']);
@@ -128,13 +157,21 @@ onMounted(() => {
       selectionHash: {
         container: '#selection-hash',
       },
+      cursors: true,
     },
   });
 
   let change = new Delta();
   const runAutosave = debounce(() => {
     if (change.length() > 0) {
-      emit('autosave', quillInstance.getSemanticHTML());
+      // while co-editing, one editor saves for everyone
+      if (!coEdit.active.value || coEdit.isLeader.value) {
+        emit(
+          'autosave',
+          quillInstance.getSemanticHTML(),
+          coEdit.active.value ? coEdit.saveHeaders() : {}
+        );
+      }
       change = new Delta();
       unsaved.value = false;
       emit('status', { value: 'saved' });
@@ -142,7 +179,7 @@ onMounted(() => {
   }, 1000);
 
   quillInstance.on('text-change', function (delta, oldDelta, source) {
-    if (source === 'user') {
+    if (source === 'user' || (coEdit.active.value && coEdit.isLeader.value)) {
       change = change.compose(delta);
       runAutosave();
 
@@ -188,16 +225,20 @@ onMounted(() => {
       quillInstance.enabled = false;
       await asyncTimeout(300);
       //quillInstance.setText(newValue)
+      stopCoEdit();
       quillInstance.clipboard.dangerouslyPasteHTML(newValue);
       loadingDocument.value = false;
       quillInstance.enabled = true;
+      startCoEdit();
     }
   );
+  watch(() => props.coEditKey, startCoEdit);
 });
 
 let clearLinesRepeat;
 
 onUnmounted(() => {
+  stopCoEdit();
   clearLinesRepeat();
 
   if (quillInstance) {
@@ -214,6 +255,8 @@ watch(
     //quillInstance.setText(newValue)
 
     quillInstance.enable(!newValue);
+    if (newValue) stopCoEdit();
+    else startCoEdit();
   }
 );
 

@@ -21,6 +21,9 @@ class DesktopGate
 
     public function handle(Request $request, Closure $next): Response
     {
+        // the collaboration listener serves the node agent's API, never pages
+        abort_if(Channel::of($request) === Channel::COLLAB, 404);
+
         if (! Channel::isGuest($request)) {
             return $next($request);
         }

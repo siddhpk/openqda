@@ -27,3 +27,6 @@ Nothing to do: while `OPENQDA_DESKTOP` is unset, the module is inactive. One par
 
 The full guide for users and builders is
 [desktop/README.md](https://github.com/openqda/openqda/blob/main/desktop/README.md).
+
+To let several laptops work on the same project, each on its own copy, see
+[Laptop Collaboration](./laptop-collaboration.md).

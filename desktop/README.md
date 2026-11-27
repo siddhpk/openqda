@@ -70,8 +70,37 @@ you add them to, as usual in OpenQDA.
 **A computer that stays on for others** (for example an office PC): tick *Start OpenQDA when I sign in* and
 *Keep sharing on until I stop it*. The link stays the same; it works whenever that computer is on.
 
-Each installation keeps its own data. Copies on different computers do not synchronize, so a team works on the
-one computer that shares.
+Sharing lets colleagues work on *this* computer's OpenQDA. For colleagues who work on *their own* laptops,
+use collaboration (next section).
+
+## Collaborating across laptops
+
+Everyone installs OpenQDA and works on their own laptop, also offline. While you are online you see who else is
+working (their initials in the sidebar), and every change reaches the others within a second. Memos and unlocked
+document texts can be edited together, keystroke by keystroke, with everyone's cursor shown. After time offline,
+the laptops catch up and merge by themselves. All of this runs over your team's private Tailscale network, built
+into OpenQDA: nothing is reachable from the internet, and only OpenQDA (not the whole computer) joins the network.
+
+1. **Invite:** open **Collaboration** (people icon) and press **Invite people**. One dialog guides you: sign in
+   to Tailscale with your own free account (first time only), pick the project and the role, then share this
+   computer if they need to use their own Tailscale account. When the one-click team-network setup is complete,
+   press **Invite without a Tailscale account** and send the private invitation text.
+2. **Join:** install OpenQDA and create your account, open **Collaboration**, choose **Join a project**, and paste
+   the invitation. OpenQDA joins automatically when the invitation contains a one-time key. If it is a shared
+   computer invitation instead, sign in to Tailscale with the invitee's account (first time only) and press
+   *Accept* in the small window. The project arrives with all documents as soon as the inviting laptop is online.
+
+If everyone keeps separate Tailscale accounts, nobody administers anyone else's account. Teams that prefer one
+network you administer can set up one-click invitations under **Connection and settings**.
+
+**Roles:** a Primary's changes merge directly. An Assistant's additions, and changes to their own items, merge
+directly too. Changes to or deletions of someone else's work wait in the Primaries' **Review** list.
+
+**Stays private:** memos set to "Only me", accounts and passwords, AI settings and data. Deleting a project on
+your laptop only means you stop collaborating on it.
+
+The developer documentation (`docs/installation/laptop-collaboration.md`) has the access rules for the Tailscale
+network and the details.
 
 ## Autocoding with AI embeddings (optional)
 
@@ -115,11 +144,15 @@ The script downloads FrankenPHP 1.13.5 from GitHub and checks it against pinned 
 
 ```
 OpenQDA launcher (Go, desktop/launcher)
- ├─ first start: config.json (APP_KEY, ports), SQLite database, migrations
+ ├─ first start: config.json (APP_KEY, node key, ports), SQLite database, migrations
  ├─ FrankenPHP = Caddy web server + PHP 8.5, one process (runtime/)
  │   ├─ 127.0.0.1:8765   "local"  – you (Host must be 127.0.0.1/localhost)
  │   ├─ 127.0.0.1:<rand> "shared" – only reachable through Tailscale Funnel
- │   └─ 0.0.0.0:8766     "lan"    – only while "share on this network" is on
+ │   ├─ 0.0.0.0:8766     "lan"    – only while "share on this network" is on
+ │   ├─ 127.0.0.1:<rand> "collab" – the node agent's storage API (no pages)
+ │   └─ /_live on every listener → the node agent's live channel for browsers
+ ├─ node agent (cluster/): embedded Tailscale node (data folder/tailscale), links to teammates' laptops,
+ │   presence, replication, file copies; control API on 127.0.0.1 for PHP
  └─ watches state.json: sharing mode, autostart, shutdown request
 Laravel app (web/, unchanged code paths on servers)
  ├─ config/desktop.php, app/Services/Desktop/* (Channel, SharingManager, Tailscale, DocumentConverter)
@@ -134,8 +167,10 @@ the laptop edition (`OPENQDA_DESKTOP` unset) none of this is active.
 
 - The installers are not code-signed or notarized, so users see the warnings described above.
 - There is no tray icon. OpenQDA runs in the background; stop it from the Sharing page or the Start menu.
-- Real-time collaboration (live updates, the WebSocket server) is off in the laptop edition. Saved work is shared
-  normally.
+- The Reverb WebSocket server is not part of the laptop edition. Live updates between laptops come from the
+  collaboration agent instead; people sharing one computer through a link see others' changes after a reload.
+- A computer belongs to one Tailscale network at a time; joining a project in another network moves OpenQDA
+  there (it asks first).
 - Installed size is about 250–400 MB, mostly the PHP runtime.
 - Tested end to end in a browser on Linux and Windows. The macOS build comes from the same code and build script
   but has not run on a Mac yet.

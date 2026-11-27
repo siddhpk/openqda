@@ -9,10 +9,12 @@ use App\Events\UserDeletingItself;
 use App\Listeners\DeleteRelatedCodes;
 use App\Listeners\DeleteRelatedSources;
 use App\Listeners\DeleteSourceFiles;
+use App\Listeners\InstallCollabTriggers;
 use App\Listeners\ListenUserDeletingItself;
 use App\Listeners\VerifyDesktopRegistration;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
+use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Event;
 
@@ -39,6 +41,10 @@ class EventServiceProvider extends ServiceProvider
         ],
         UserDeletingItself::class => [
             ListenUserDeletingItself::class,
+        ],
+        // laptop collaboration: capture triggers follow the tables after each migration run
+        MigrationsEnded::class => [
+            InstallCollabTriggers::class,
         ],
     ];
 

@@ -43,6 +43,11 @@ class RouteServiceProvider extends ServiceProvider
 
             Route::middleware('web')
                 ->group(base_path('routes/web.php'));
+
+            // laptop collaboration: the node agent's storage API (loopback only)
+            Route::middleware('collab.local')
+                ->prefix('_collab/local')
+                ->group(base_path('routes/collab-local.php'));
         });
     }
 

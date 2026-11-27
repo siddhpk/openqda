@@ -108,22 +108,31 @@ func run(background, stop bool, dataDir string) error {
 		logf("warning: autostart: %v", err)
 	}
 
+	collab, err := newCollabRuntime(layout, cfg, logf)
+	if err != nil {
+		return err
+	}
 	server := &Server{Layout: layout, Config: cfg, Env: envList, Log: logFile}
 	if err := server.Start(state.Sharing.Mode == "lan"); err != nil {
+		collab.stop()
 		return err
 	}
 	if err := server.WaitHealthy(60 * time.Second); err != nil {
 		server.Stop()
+		collab.stop()
 		return err
 	}
 	logf("listening on %s", server.LocalURL())
+	collab.start()
 	if !background {
 		if err := OpenBrowser(server.LocalURL()); err != nil {
 			logf("warning: could not open the browser: %v", err)
 		}
 	}
 
-	return supervise(server, layout, exe, statePath, autostart, logf)
+	err = supervise(server, layout, exe, statePath, autostart, logf)
+	collab.stop()
+	return err
 }
 
 func supervise(server *Server, layout Layout, exe, statePath string, autostart bool, logf func(string, ...any)) error {

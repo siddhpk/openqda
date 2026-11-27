@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/openqda/openqda/desktop/launcher/cluster"
 )
 
 func fakeInstall(t *testing.T, macBundle bool) (exe string, root string) {
@@ -170,5 +172,69 @@ func TestPHPIniLimits(t *testing.T) {
 		if !strings.Contains(ini, want) {
 			t.Fatalf("php ini lacks %q", want)
 		}
+	}
+}
+
+func TestConfigGainsCollaborationSecretsAndPortsOnUpgrade(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.json")
+	// a config.json written by the first laptop edition
+	old := `{"app_key":"base64:` + strings.Repeat("A", 43) + `=","altcha_key":"k","local_port":8765,"shared_port":9001,"lan_port":8766,"admin_port":9002}`
+	if err := os.WriteFile(path, []byte(old), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg, created, err := LoadOrCreateConfig(path)
+	if err != nil || !created {
+		t.Fatalf("created=%v err=%v", created, err)
+	}
+	if cfg.LocalPort != 8765 || cfg.SharedPort != 9001 || cfg.AppKey == "" {
+		t.Fatalf("existing settings changed: %+v", cfg)
+	}
+	ports := map[int]bool{cfg.LocalPort: true, cfg.SharedPort: true, cfg.LanPort: true, cfg.AdminPort: true,
+		cfg.CollabPort: true, cfg.ControlPort: true, cfg.LivePort: true}
+	if len(ports) != 7 || ports[0] {
+		t.Fatalf("collaboration ports missing or not distinct: %+v", cfg)
+	}
+	if len(cfg.ControlToken) != 64 {
+		t.Fatalf("control token: %q", cfg.ControlToken)
+	}
+	id, err := cluster.IdentityFromSeed(cfg.NodeKey)
+	if err != nil || !strings.HasPrefix(id.Node, "n") {
+		t.Fatalf("node key: %v", err)
+	}
+	again, created2, _ := LoadOrCreateConfig(path)
+	if created2 || again != cfg {
+		t.Fatal("node identity must stay the same across starts")
+	}
+}
+
+func TestCollaborationSettingsReachPHPButCannotBeOverridden(t *testing.T) {
+	exe, _ := fakeInstall(t, false)
+	l, _ := ResolveLayout(exe, t.TempDir())
+	os.WriteFile(l.DataFile("settings.env"), []byte("OPENQDA_CONTROL_TOKEN=guess\nOPENQDA_NODE_KEY=x\n"), 0o600)
+	env, warnings := AppEnv(l, Config{AppKey: "base64:x", LocalPort: 8765, CollabPort: 9101, ControlPort: 9102, ControlToken: "tok", NodeKey: "seed"})
+	if env["OPENQDA_CONTROL_URL"] != "http://127.0.0.1:9102" || env["OPENQDA_COLLAB_PORT"] != "9101" ||
+		env["OPENQDA_CONTROL_TOKEN"] != "tok" || env["OPENQDA_NODE_KEY"] != "seed" {
+		t.Fatalf("collaboration settings: %v", env)
+	}
+	if len(warnings) != 2 {
+		t.Fatalf("expected two warnings, got %v", warnings)
+	}
+}
+
+func TestCaddyfileRoutesLiveSocketAndCollabChannel(t *testing.T) {
+	l := Layout{Root: "/opt/oq", App: "/opt/oq/app", Runtime: "/opt/oq/runtime", Data: "/data"}
+	cfg := Config{LocalPort: 8765, SharedPort: 9001, LanPort: 8766, AdminPort: 9002, CollabPort: 9101, LivePort: 9103}
+	c := Caddyfile(l, cfg, false)
+	for _, want := range []string{
+		"handle /_live {\n\t\treverse_proxy 127.0.0.1:9103\n\t}",
+		"http://:9101 {\n\tbind 127.0.0.1\n\timport openqda collab",
+	} {
+		if !strings.Contains(c, want) {
+			t.Fatalf("Caddyfile lacks %q:\n%s", want, c)
+		}
+	}
+	// the live socket is matched before PHP
+	if strings.Index(c, "handle /_live") > strings.Index(c, "php_server") {
+		t.Fatal("/_live must be handled before PHP")
 	}
 }

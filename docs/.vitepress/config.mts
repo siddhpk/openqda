@@ -37,7 +37,8 @@ export default defineConfig({
           {text: 'Preparations', link: '/installation/preparations'},
           {text: 'Docker', link: '/installation/docker'},
           {text: 'Manual', link: '/installation/manual'},
-          {text: 'Laptop Edition', link: '/installation/laptop-edition'}
+          {text: 'Laptop Edition', link: '/installation/laptop-edition'},
+          {text: 'Laptop Collaboration', link: '/installation/laptop-collaboration'}
         ]
       },
       {
@@ -47,6 +48,7 @@ export default defineConfig({
               {text: 'Overview', link: '/development/backend/backend'},
               {text: 'Websocket', link: '/development/backend/websockets'},
               {text: 'Live Team Coding', link: '/development/backend/live-coding'},
+              {text: 'Laptop Cluster', link: '/development/backend/laptop-cluster'},
               {text: 'Testing', link: '/development/backend/testing'},
             ]
           },

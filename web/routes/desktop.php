@@ -30,3 +30,8 @@ Route::post('/desktop/shutdown', [DesktopController::class, 'shutdown'])
 Route::get('/share/enter', [DesktopController::class, 'gate'])->name('desktop.gate');
 Route::post('/share/enter', [DesktopController::class, 'enter'])
     ->middleware('throttle:30,1')->name('desktop.enter');
+
+/*
+ * Laptop collaboration (private cluster over the team's Tailscale network)
+ */
+require __DIR__.'/collab.php';

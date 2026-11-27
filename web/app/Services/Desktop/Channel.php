@@ -24,6 +24,9 @@ class Channel
 
     public const SERVER = 'server';
 
+    /** loopback listener of the laptop collaboration's node agent (no pages) */
+    public const COLLAB = 'collab';
+
     /**
      * Whether the Embeddings & Autocoding module is part of this build; the
      * Sharing page offers to switch autocoding on only then.
@@ -46,7 +49,7 @@ class Channel
         $value = $request->server('OPENQDA_CHANNEL');
 
         // an unknown or missing value gets the most restricted treatment
-        return in_array($value, [self::LOCAL, self::SHARED, self::LAN], true) ? $value : self::SHARED;
+        return in_array($value, [self::LOCAL, self::SHARED, self::LAN, self::COLLAB], true) ? $value : self::SHARED;
     }
 
     /** The person at this computer (may manage sharing and shut down). */

@@ -3,6 +3,8 @@
 namespace App\Http;
 
 use App\Http\Middleware\Authenticate;
+use App\Http\Middleware\CollabCapture;
+use App\Http\Middleware\CollabLocalAuth;
 use App\Http\Middleware\DesktopGate;
 use App\Http\Middleware\DesktopHostOnly;
 use App\Http\Middleware\EncryptCookies;
@@ -66,6 +68,8 @@ class Kernel extends HttpKernel
             SubstituteBindings::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+            // laptop collaboration only: send this request's changes to collaborators
+            CollabCapture::class,
         ],
 
         'api' => [
@@ -94,5 +98,6 @@ class Kernel extends HttpKernel
         'throttle' => ThrottleRequests::class,
         'verified' => EnsureEmailIsVerified::class,
         'desktop.host' => DesktopHostOnly::class,
+        'collab.local' => CollabLocalAuth::class,
     ];
 }

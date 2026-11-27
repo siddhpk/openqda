@@ -53,11 +53,17 @@ export const useNotes = () => {
     return { error, response };
   };
 
-  const updateNote = async (data, target) => {
+  /**
+   * @param data {object} note fields with id
+   * @param target {object} the item the note belongs to
+   * @param options {{headers?: object}} e.g. the shared document of a co-edited memo
+   */
+  const updateNote = async (data, target, { headers } = {}) => {
     const { error, response } = await request({
       url: `/projects/${projectId}/notes/${data.id}`,
       type: 'PATCH',
       body: data,
+      headers,
     });
     onError({ response, error, message: 'Failed to update note.' });
     target.notes = target.notes ?? [];
@@ -88,10 +94,28 @@ export const useNotes = () => {
     return { error, response };
   };
 
+  /**
+   * A memo changed on another laptop (laptop collaboration live event).
+   * @param e {{kind: 'upsert'|'delete', id: string, row?: object}}
+   */
+  const applyRemote = (e) => {
+    const id = Number(e.id);
+    if (e.kind === 'delete') {
+      if (noteStore.entries[id]) noteStore.remove(id);
+      return;
+    }
+    if (!e.row) return;
+    const users = allUsers?.value ?? allUsers ?? {};
+    const doc = { ...e.row, id, user: users[e.row.creating_user_id] };
+    if (noteStore.entries[id]) noteStore.update(id, doc);
+    else noteStore.add(doc);
+  };
+
   return {
     notes: allNotes,
     loading,
     initNotes,
+    applyRemote,
     createNoteSchema,
     editNoteSchema,
     createNote,

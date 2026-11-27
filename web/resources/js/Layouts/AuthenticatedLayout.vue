@@ -143,7 +143,7 @@
                 :aria-label="item.label"
                 :class="
                   cn(
-                    'group flex gap-x-3 rounded-md p-3 text-sm font-semibold leading-6',
+                    'relative group flex gap-x-3 rounded-md p-3 text-sm font-semibold leading-6',
                     item.current
                       ? 'w-full justify-center rounded-none text-center bg-surface text-secondary rounded-l-md'
                       : 'text-foreground/50 hover:bg-surface hover:text-foreground/50',
@@ -160,6 +160,12 @@
                   aria-hidden="true"
                 />
                 <span class="sr-only">{{ item.label }}</span>
+                <span
+                  v-if="item.count"
+                  class="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-destructive text-[10px] leading-4 text-white text-center"
+                  :data-test="`nav-count-${item.name}`"
+                  >{{ item.count }}</span
+                >
               </Link>
               <div
                 class="flex items-center justify-center mb-3"
@@ -195,6 +201,11 @@
               </button>
             </li>
           </ul>
+          <!-- laptop collaboration: who else is working in this project -->
+          <PresenceAvatars
+            v-if="cluster.state.enabled"
+            :people="cluster.people.value"
+          />
           <div
             class="p-3 text-center"
             :title="`Collaboration: ${websocket.status.value}`"
@@ -287,11 +298,14 @@ import { useLegal } from '../domain/legal/useLegal.js';
 import ConsentDialog from '../domain/legal/ConsentDialog.vue';
 import { useGlobalNotification } from '../Components/layout/useGlobalNotification.js';
 import Button from '../Components/interactive/Button.vue';
+import PresenceAvatars from '../Components/collab/PresenceAvatars.vue';
+import { useClusterLive } from '../domain/collab/useClusterLive.js';
 
 const { notificationText } = useGlobalNotification();
 const hideNotification = ref(false);
 const { consentRequired } = useLegal();
 const websocket = useWebSocketConnection();
+const cluster = useClusterLive();
 const navigation = ref([]);
 const sidebarOpen = ref(false);
 const { initTeams, teamInitialized, hasTeam, dispose, teamId, usersInChannel } =
@@ -369,7 +383,7 @@ onMounted(() => {
   ).map(({ icon, route }) => {
     const href = route.path(projectId);
     const disabled = !href;
-    const count = 0;
+    const count = route.count ? route.count(page) : 0;
     const current = route.active(active);
     const label = disabled
       ? `${route.label} - You need to select a project`
@@ -385,6 +399,10 @@ onMounted(() => {
 
   if (projectId) {
     setupConversion({ projectId });
+    // laptop collaboration (does nothing unless the project is collaborative)
+    cluster
+      .connect(projectId)
+      .then((on) => on && cluster.view({ view: active?.split('.')[0] ?? '' }));
   } else {
     debug('TODO: watch for projectId');
   }

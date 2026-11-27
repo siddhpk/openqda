@@ -9,7 +9,11 @@ import {
   SquaresPlusIcon,
 } from '@heroicons/vue/20/solid/index.js';
 import { Routes } from './Routes.js';
-import { GlobeAltIcon, UserCircleIcon } from '@heroicons/vue/20/solid';
+import {
+  GlobeAltIcon,
+  UserCircleIcon,
+  UserGroupIcon,
+} from '@heroicons/vue/20/solid';
 
 /**
  * Single-point-of truth definition for which
@@ -56,5 +60,9 @@ export const NavRoutes = [
   {
     icon: GlobeAltIcon,
     route: Routes.sharing,
+  },
+  {
+    icon: UserGroupIcon,
+    route: Routes.collaboration,
   },
 ];

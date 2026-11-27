@@ -8,8 +8,8 @@
 
 Requirements on the build machine (checked before every build): Python 3.9+,
 PHP 8.2+ with the openssl and zip extensions and Composer 2, Node 20.19+ or
-22.12+ with npm (not needed with --reuse-frontend), Go (the version in
-desktop/launcher/go.mod, 1.22+), git (for the version label); for the
+22.12+ with npm (not needed with --reuse-frontend), Go 1.21+ (it downloads
+the version in desktop/launcher/go.mod by itself), git (for the version label); for the
 Windows installer also NSIS 3 (makensis; available for Windows, macOS and
 Linux), for macOS the Xcode command line tools (codesign, hdiutil).
 
@@ -325,7 +325,9 @@ def tool_version(exe: str, args: list[str]) -> tuple[int, ...] | None:
 
 
 def go_required() -> tuple[int, int]:
-    """The minimum Go version, from the `go 1.22` line of the launcher's go.mod."""
+    """The Go version the launcher needs, from the `go 1.x` line of its go.mod.
+    Go 1.21 and later download that toolchain by themselves (GOTOOLCHAIN=auto,
+    the default), so an older installed Go still builds it."""
     go_mod = DESKTOP / "launcher" / "go.mod"
     m = re.search(r"^go\s+(\d+)\.(\d+)", go_mod.read_text(), re.M) if go_mod.is_file() else None
     return (int(m[1]), int(m[2])) if m else (1, 22)
@@ -381,7 +383,9 @@ def check_prerequisites(target: str, frontend: bool, package: bool, git_label: b
         report("ok", "frontend", f"reusing the desktop build in {MANIFEST.parent.relative_to(ROOT)}, Node and npm not needed")
 
     go_min = go_required()
-    tool("go", f"Go {go_min[0]}.{go_min[1]}+ (builds the launcher)", ["version"], lambda v: v >= go_min)
+    fetches = os.environ.get("GOTOOLCHAIN", "auto") != "local"
+    tool("go", f"Go {go_min[0]}.{go_min[1]}+ (builds the launcher; Go 1.21+ downloads it on first use)", ["version"],
+         lambda v: v >= go_min or (fetches and v >= (1, 21)))
 
     if package and target.startswith("windows"):
         tool("makensis", "NSIS 3 (makensis, builds the installer)", ["-VERSION"], lambda v: v >= (3, 0))

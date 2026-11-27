@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net"
 	"os"
+
+	"github.com/openqda/openqda/desktop/launcher/cluster"
 )
 
 // Config is created on first start and kept in <data>/config.json.
@@ -19,6 +21,13 @@ type Config struct {
 	SharedPort int    `json:"shared_port"`
 	LanPort    int    `json:"lan_port"`
 	AdminPort  int    `json:"admin_port"`
+
+	// Laptop collaboration (added later; filled in for older config files)
+	CollabPort   int    `json:"collab_port"`   // PHP storage API for the node agent (127.0.0.1)
+	ControlPort  int    `json:"control_port"`  // node agent API for PHP (127.0.0.1)
+	LivePort     int    `json:"live_port"`     // browser WebSocket, proxied by Caddy as /_live
+	ControlToken string `json:"control_token"` // shared secret of the loopback APIs
+	NodeKey      string `json:"node_key"`      // Ed25519 seed of this node's cluster identity
 }
 
 // Preferred ports; a free port is chosen when one is taken.
@@ -54,8 +63,24 @@ func LoadOrCreateConfig(path string) (Config, bool, error) {
 		cfg.AltchaKey = hex.EncodeToString(k)
 		created = true
 	}
+	if cfg.ControlToken == "" {
+		k := make([]byte, 32)
+		if _, err := rand.Read(k); err != nil {
+			return cfg, false, err
+		}
+		cfg.ControlToken = hex.EncodeToString(k)
+		created = true
+	}
+	if cfg.NodeKey == "" {
+		seed, err := cluster.NewSeed()
+		if err != nil {
+			return cfg, false, err
+		}
+		cfg.NodeKey = seed
+		created = true
+	}
 	used := map[int]bool{}
-	for _, p := range []*int{&cfg.LocalPort, &cfg.SharedPort, &cfg.LanPort, &cfg.AdminPort} {
+	for _, p := range []*int{&cfg.LocalPort, &cfg.SharedPort, &cfg.LanPort, &cfg.AdminPort, &cfg.CollabPort, &cfg.ControlPort, &cfg.LivePort} {
 		if *p != 0 {
 			used[*p] = true
 		}
@@ -76,7 +101,8 @@ func LoadOrCreateConfig(path string) (Config, bool, error) {
 	for _, p := range []struct {
 		target    *int
 		preferred int
-	}{{&cfg.LocalPort, preferredLocalPort}, {&cfg.LanPort, preferredLanPort}, {&cfg.SharedPort, 0}, {&cfg.AdminPort, 0}} {
+	}{{&cfg.LocalPort, preferredLocalPort}, {&cfg.LanPort, preferredLanPort}, {&cfg.SharedPort, 0}, {&cfg.AdminPort, 0},
+		{&cfg.CollabPort, 0}, {&cfg.ControlPort, 0}, {&cfg.LivePort, 0}} {
 		if err := pick(p.target, p.preferred); err != nil {
 			return cfg, false, err
 		}

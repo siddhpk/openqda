@@ -99,6 +99,18 @@
         >
           <template #actions>
             <LiveViewers v-if="props.source" />
+            <div
+              v-if="props.source && clusterCoding.stale.value"
+              class="mx-2 my-1 flex items-center gap-2 rounded bg-secondary/15 px-2 py-1 text-xs"
+              data-test="cluster-stale"
+            >
+              <span class="grow"
+                >Collaborators changed documents or codes.</span
+              >
+              <button class="underline" @click="clusterCoding.reload">
+                Reload
+              </button>
+            </div>
             <CoderFilter v-if="props.source && !sorting" />
             <Transition name="fade">
               <span v-if="sorting" class="text-sm text-foreground/80">
@@ -301,6 +313,7 @@ import { useVariables } from '../domain/variables/useVariables.js';
 import CoderFilter from './coding/collab/CoderFilter.vue';
 import LiveViewers from './coding/collab/LiveViewers.vue';
 import { useLiveCoding } from '../collab/useLiveCoding.js';
+import { useClusterCoding } from '../domain/collab/useClusterCoding.js';
 
 const props = defineProps(['source', 'sources', 'allCodes', 'projectId']);
 
@@ -524,6 +537,8 @@ watch(codingInitialized, (ready) => ready && focusFromUrl(), { once: true });
 //------------------------------------------------------------------------
 const pageTitle = ref('Coding');
 const liveCoding = useLiveCoding();
+// laptop collaboration: changes from the other laptops arrive live
+const clusterCoding = useClusterCoding();
 
 onMounted(async () => {
   const fileId = new URLSearchParams(window.location.search).get('source');
@@ -551,11 +566,13 @@ onMounted(async () => {
   initVariables();
   // after the stores are filled, so that live changes apply to them
   liveCoding.start();
+  clusterCoding.start();
 });
 
 onBeforeUnmount(() => {
   setSorting(null);
   liveCoding.stop();
+  clusterCoding.stop();
 });
 
 const onSourceSelected = (file) => {

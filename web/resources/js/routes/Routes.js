@@ -173,7 +173,24 @@ Routes.sharing = {
   name: 'sharing',
   label: 'Sharing & autocoding',
   path: () => href(Routes.sharing),
-  active: (name) => name.startsWith('desktop'),
+  active: (name) =>
+    name.startsWith('desktop') && !name.startsWith('desktop.collab'),
   // only the person at the computer running the laptop edition sees it
   visible: (page) => Boolean(page?.props?.desktop?.host),
+};
+
+/**
+ * Laptop edition: collaborate with other laptops over the team's private
+ * network (host only; the badge counts changes waiting for review).
+ * @type {Route}
+ */
+Routes.collaboration = {
+  key: 'desktop.collab',
+  name: 'collaboration',
+  label: 'Collaboration',
+  path: () => href(Routes.collaboration),
+  active: (name) => name.startsWith('desktop.collab'),
+  visible: (page) =>
+    Boolean(page?.props?.desktop?.host && page?.props?.desktop?.enabled),
+  count: (page) => page?.props?.desktop?.collab?.reviews ?? 0,
 };

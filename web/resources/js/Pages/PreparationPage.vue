@@ -123,6 +123,11 @@
             :locked="editorSourceRef.locked"
             :viewerZoom="zoom"
             :useViewZoom="true"
+            :coEditKey="
+              editorSourceRef.id && !editorSourceRef.locked
+                ? `sources:${editorSourceRef.id}:html`
+                : null
+            "
             @update:zoom="(action) => setZoom(action, editorSourceRef.id)"
             @autosave="saveQuillContent"
           >
@@ -348,7 +353,7 @@ function onDocumentDeleted(deletedDocumentId) {
 const saving = ref(false);
 const saved = ref(false);
 
-async function saveQuillContent(html) {
+async function saveQuillContent(html, headers = {}) {
   saving.value = true;
   const { response, error } = await request({
     url: '/source/update',
@@ -357,6 +362,8 @@ async function saveQuillContent(html) {
       id: editorSourceRef.value.id,
       content: { editorContent: html },
     },
+    // laptop collaboration: the shared document this save comes from
+    headers,
   });
 
   if (error || response.status >= 400) {

@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\Note;
 use App\Models\Project;
 use App\Models\User;
+use App\Services\Collab\Collab;
 
 class NotePolicy extends BasePolicy
 {
@@ -51,7 +52,19 @@ class NotePolicy extends BasePolicy
         $project = $note->project;
 
         return ($this->isUserInProjectOrTeam($user, null, $project) && $user->id === $note->creating_user_id)
+            || $this->sharedInCollaboration($user, $note)
             || in_array($user->email, $this->allowedEmails);
+    }
+
+    /**
+     * Laptop collaboration: shared memos of a collaborative project may be
+     * edited by its members here; the change then follows the roles
+     * (a Primary's merges, an Assistant's waits for review).
+     */
+    private function sharedInCollaboration(User $user, Note $note): bool
+    {
+        return $note->visibility === 1 && Collab::isCollaborative($note->project_id)
+            && $this->isUserInProjectOrTeam($user, null, $note->project);
     }
 
     /**
@@ -62,6 +75,7 @@ class NotePolicy extends BasePolicy
         $project = $note->project;
 
         return ($this->isUserInProjectOrTeam($user, null, $project) && $user->id === $note->creating_user_id)
+            || $this->sharedInCollaboration($user, $note)
             || in_array($user->email, $this->allowedEmails);
     }
 }

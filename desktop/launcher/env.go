@@ -15,7 +15,8 @@ var reservedKeys = map[string]bool{
 	"APP_KEY": true, "APP_URL": true, "DB_CONNECTION": true, "DB_DATABASE": true,
 	"LARAVEL_STORAGE_PATH": true, "OPENQDA_DESKTOP": true, "OPENQDA_DATA": true,
 	"OPENQDA_STATE_FILE": true, "OPENQDA_SHARED_PORT": true, "OPENQDA_LAN_PORT": true,
-	"PHP_INI_SCAN_DIR": true,
+	"OPENQDA_COLLAB_PORT": true, "OPENQDA_CONTROL_URL": true, "OPENQDA_CONTROL_TOKEN": true,
+	"OPENQDA_NODE_KEY": true, "PHP_INI_SCAN_DIR": true,
 }
 
 // AppEnv builds the environment for PHP (web server and artisan).
@@ -55,6 +56,11 @@ func AppEnv(l Layout, cfg Config) (map[string]string, []string) {
 		"OPENQDA_SHARED_PORT":  fmt.Sprint(cfg.SharedPort),
 		"OPENQDA_LAN_PORT":     fmt.Sprint(cfg.LanPort),
 		"PHP_INI_SCAN_DIR":     l.DataFile("php"),
+		// laptop collaboration: the node agent and PHP talk over loopback only
+		"OPENQDA_COLLAB_PORT":   fmt.Sprint(cfg.CollabPort),
+		"OPENQDA_CONTROL_URL":   fmt.Sprintf("http://127.0.0.1:%d", cfg.ControlPort),
+		"OPENQDA_CONTROL_TOKEN": cfg.ControlToken,
+		"OPENQDA_NODE_KEY":      cfg.NodeKey,
 	}
 	if pandoc := l.Binary("pandoc"); isFile(pandoc) {
 		env["PANDOC_PATH"] = pandoc

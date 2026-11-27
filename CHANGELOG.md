@@ -25,6 +25,7 @@ module, an external service, or a mix of these.
 | 624c981 | [Analysis Toolkit with Mind Map](#module-analysis-toolkit-with-mind-map) | backend + frontend, visualization plugin | none | yes |
 | b96a09a | [Matrix and Co-occurrence visualizations](#module-matrix-and-co-occurrence-visualizations) | frontend visualization plugins | none | none |
 | 272cca9 | [Laptop Edition](#module-laptop-edition) | distribution + backend module | `OPENQDA_DESKTOP` (set by the launcher) | none |
+| (next) | [Laptop Collaboration](#module-laptop-collaboration) | launcher + backend + frontend, embedded Tailscale | set by the launcher; needs the Laptop Edition | yes |
 | c3cc2c1, 018c5d6, 55da7df | [Core fixes and settings](#core-fixes-and-settings) | core | none | none |
 
 ### Module: Live Team Coding
@@ -79,6 +80,24 @@ module, an external service, or a mix of these.
 - **With other modules:** the Sharing page switches autocoding on with the local Ollama when Embeddings &
   Autocoding is installed.
 - **Docs:** [docs/installation/laptop-edition.md](docs/installation/laptop-edition.md)
+
+### Module: Laptop Collaboration
+- **Provides:** every collaborator works on their own laptop, also offline. Laptops of a team form a private cluster
+  over the team's Tailscale network, built into the launcher (no Tailscale app, no admin rights, nothing reachable
+  from the internet).
+  - Presence and changes stream within a second while online; offline laptops catch up from any teammate.
+  - Memos and unlocked document texts are co-edited live (Yjs, cursors shown).
+  - Roles: a Primary's changes merge silently; an Assistant's changes to someone else's work wait for review.
+  - Invitations per project may carry a one-time Tailscale key, so the invited person needs no Tailscale account,
+    or the invited person joins with their own account.
+- **Requires:** the Laptop Edition (272cca9). It uses Live Team Coding's apply logic in the coding view when
+  installed, and replicates the Analysis Toolkit tables when they exist.
+- **Install:** `php artisan migrate`, `npm install`, `npm run build`; rebuild the installers (Go 1.21+ fetches the
+  Go version in `desktop/launcher/go.mod`). Routes: `routes/collab.php`, `routes/collab-local.php`.
+- **Core changes it brings:** shared memos of a collaborative project can be edited by its members (the change then
+  follows the roles); SQLite busy timeout on the laptop edition; the `collab` channel answers 404 to pages.
+- **Docs:** [docs/installation/laptop-collaboration.md](docs/installation/laptop-collaboration.md),
+  [docs/development/backend/laptop-cluster.md](docs/development/backend/laptop-cluster.md)
 
 ### Core fixes and settings
 - Text can be selected for coding on phones and tablets (long press no longer cancels the selection; the *Menu*
