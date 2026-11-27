@@ -183,6 +183,13 @@ def build_frontend(reuse: bool) -> None:
         return
     if reuse:
         log("web/public/build was not built by this script (it may use settings from web/.env): building it again")
+    ziggy = WEB / "vendor" / "tightenco" / "ziggy" / "dist" / "vue.m.js"
+    if not ziggy.is_file():
+        log("installing Composer dependencies needed by the frontend")
+        run(["composer", "install", "--prefer-dist", "--no-interaction", "--no-scripts", "--no-progress",
+             "--ignore-platform-reqs"], cwd=WEB, env={"COMPOSER_ALLOW_SUPERUSER": "1"})
+        if not ziggy.is_file():
+            sys.exit("Composer did not install the Ziggy frontend dependency")
     run(["npm", "ci", "--no-audit", "--no-fund"], cwd=WEB)
     run(["npm", "run", "build"], cwd=WEB, env=FRONTEND_ENV)
     if not MANIFEST.exists():

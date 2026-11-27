@@ -138,7 +138,8 @@ python desktop/build/build.py --target linux-x86_64     # on Linux
 You need Python 3.9+, PHP 8.2+ (with the openssl and zip extensions) with Composer 2, Node 20.19+ or 22.12+, Go 1.22+
 and git. Before it builds anything, the script checks these and lists whatever is missing with install hints. To run
 only the check, use `python desktop/build/build.py --check --target windows-x86_64`. Output goes to `desktop/dist/`.
-The script downloads FrankenPHP 1.13.5 from GitHub and checks it against pinned SHA-256 sums.
+The script installs Composer dependencies in `web/vendor` if Ziggy is missing for the frontend build. It downloads
+FrankenPHP 1.13.5 from GitHub and checks it against pinned SHA-256 sums.
 
 ## How it works
 
